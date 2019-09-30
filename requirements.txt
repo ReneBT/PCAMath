@@ -1,0 +1,7 @@
+# Requirements for PCA Math Tutorial
+pypandoc
+numpy
+scipy
+matplotlib
+sklearn
+pathlib
