@@ -28,6 +28,7 @@ Run the following commands (you should see "(base)"  prefixing your command prom
 	".venv_pca/Scripts/activate.bat"
 
 You should now see "(venv_pca) (base)"  prefixing your command prompt:
+
 	pip install -r requirements.txt
 	pip install ipykernel
 	ipython kernel install --user --name=.venv_pca
