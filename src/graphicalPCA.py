@@ -31,10 +31,12 @@ class graphicalPCA:
 
     def __init__(self):
         ###################            START Data Simulation              #######################
-        cwd = (
-            os.getcwd()
-        )  # record current working directory to create relative folder structure
-
+# =============================================================================
+#         cwd = (
+#             os.getcwd()
+#         )  # record current working directory to create relative folder structure
+# 
+# =============================================================================
         # Read in simulated fatty acid spectra and associated experimental concentration data
         GC_data = sio.loadmat(
             data_folder / "FA profile data.jrb", struct_as_record=False
@@ -52,24 +54,27 @@ class graphicalPCA:
         molar_profile = GC_data["ANNSBUTTERmass"] / simplified_fatty_acid_spectra["FAproperties"][0, 0].MolarMass
         molar_profile = 100.0 * molar_profile / sum(molar_profile)
 
-        # create a molar_profile with no correlation
-        fatty_acids_mean = np.mean(molar_profile, 1)
-        fatty_acids_stddev = np.std(molar_profile, 1)
-        # generate random numbers in array same size as molar_profile, scale by 1fatty_acids_stddev then add on
-        # mean value
-        molar_profile_uncorrelated = np.random.randn(*molar_profile.shape)
-        molar_profile_uncorrelated = (molar_profile_uncorrelated.transpose() * fatty_acids_stddev) + fatty_acids_mean
-        molar_profile_uncorrelated = molar_profile_uncorrelated.transpose()
-
-        # create a molar_profile with only 2 PCs
-        nComp = 2
-        pca = PCA(nComp)
-        pca.fit(molar_profile)
-        molar_profile2PC = np.dot(
-            pca.transform(molar_profile)[:, :nComp], pca.components_[:nComp, :]
-        )
-        molar_profile2PC += pca.mean_
-
+# =============================================================================
+        # These lines of code were for exploring correlation, no longer part of current paper but intended for use in follow up
+#         # create a molar_profile with no correlation
+#         fatty_acids_mean = np.mean(molar_profile, 1)
+#         fatty_acids_stddev = np.std(molar_profile, 1)
+#         # generate random numbers in array same size as molar_profile, scale by 1fatty_acids_stddev then add on
+#         # mean value
+#         molar_profile_uncorrelated = np.random.randn(*molar_profile.shape)
+#         molar_profile_uncorrelated = (molar_profile_uncorrelated.transpose() * fatty_acids_stddev) + fatty_acids_mean
+#         molar_profile_uncorrelated = molar_profile_uncorrelated.transpose()
+# 
+#         # create a molar_profile with only 2 PCs
+#         nComp = 2
+#         pca = PCA(nComp)
+#         pca.fit(molar_profile)
+#         molar_profile2PC = np.dot(
+#             pca.transform(molar_profile)[:, :nComp], pca.components_[:nComp, :]
+#         )
+#         molar_profile2PC += pca.mean_
+# 
+# =============================================================================
         # Now generate simulated spectra for each sample by multiplying the simulated FA reference
         # spectra by the Fatty Acid profiles. Note that the simplified_fatty_acid_spectra spectra have a standard intensity in the
         # carbonyl mode peak (the peak with the highest pixel position)
@@ -77,9 +82,11 @@ class graphicalPCA:
         min_spectra_full_covariance = np.dot(
             np.transpose(min_spectral_values), molar_profile
         )  # will allow scaling of min_spectral_values to individual sample
-        spectra2Cov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile2PC)
-        spectraNoCov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile_uncorrelated)
-        # Sanity Check by plotting
+# =============================================================================
+#         spectra2Cov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile2PC)
+#         spectraNoCov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile_uncorrelated)
+#         # Sanity Check by plotting
+# =============================================================================
         plt.plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], spectra_full_covariance)
         plt.ylabel("Intensity")
         plt.xlabel("Raman Shift cm$^-1$")
@@ -104,14 +111,16 @@ class graphicalPCA:
             n_components=51
         )  # It uses the LAPACK implementation of the full SVD or a randomized truncated SVD by the method of Halko et al. 2009, depending on the shape of the input data and the number of components to extract.
         pca_full_covariance_builtin.fit(np.transpose(spectra_full_covariance))
-        PCA2CovBuiltIn = PCA(
-            n_components=51
-        )  # It uses the LAPACK implementation of the full SVD or a randomized truncated SVD by the method of Halko et al. 2009, depending on the shape of the input data and the number of components to extract.
-        PCA2CovBuiltIn.fit(np.transpose(spectra2Cov))
-
+# =============================================================================
+#         PCA2CovBuiltIn = PCA(
+#             n_components=51
+#         )  # It uses the LAPACK implementation of the full SVD or a randomized truncated SVD by the method of Halko et al. 2009, depending on the shape of the input data and the number of components to extract.
+#         PCA2CovBuiltIn.fit(np.transpose(spectra2Cov))
+# 
+# =============================================================================
         # test convergence of PCs between NIPALS and SVD based on tolerance
         PCFulldiffTol = np.empty([15, 50])
-        PC2diffTol = np.empty([15, 50])
+#        PC2diffTol = np.empty([15, 50])
         for d in range(14):
             tempNIPALS = npls.nipals(
                 spectra_full_covariance, 51, 20, 10 ** -(d + 1), "MC"
@@ -134,22 +143,24 @@ class graphicalPCA:
                         ),
                     )
                 )  # capture cases of inverted REigenvectors (arbitrary sign switching)
-                PC2diffTol[d, iPC] = np.log10(
-                    np.minimum(
-                        np.sum(
-                            np.absolute(
-                                tempNIPALS.REigenvector[iPC,]
-                                - PCA2CovBuiltIn.components_[iPC,]
-                            )
-                        ),
-                        np.sum(
-                            np.absolute(
-                                tempNIPALS.REigenvector[iPC,]
-                                + pca_full_covariance_builtin.components_[iPC,]
-                            )
-                        ),
-                    )
-                )  # capture cases of inverted REigenvectors (arbitrary sign switching)
+# =============================================================================
+#                 PC2diffTol[d, iPC] = np.log10(
+#                     np.minimum(
+#                         np.sum(
+#                             np.absolute(
+#                                 tempNIPALS.REigenvector[iPC,]
+#                                 - PCA2CovBuiltIn.components_[iPC,]
+#                             )
+#                         ),
+#                         np.sum(
+#                             np.absolute(
+#                                 tempNIPALS.REigenvector[iPC,]
+#                                 + pca_full_covariance_builtin.components_[iPC,]
+#                             )
+#                         ),
+#                     )
+#                 )  # capture cases of inverted REigenvectors (arbitrary sign switching)
+# =============================================================================
 
         # compare NIPALs output to builtin SVD based output for 1st PC, switching sign if necessary as this is arbitrary
         plt.plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.REigenvector[0,])
@@ -195,15 +206,15 @@ class graphicalPCA:
             PCFulldiffTol[0, 0:48],
             list(range(1, 49)),
             PCFulldiffTol[1, 0:48],
-            list(range(1, 49)),
-            PCFulldiffTol[2, 0:48],
+
         )
         plt.ylabel("$Log_{10}$ of the Absolute Sum of Difference")
         plt.xlabel("PC Rank")
         plt.close()
 
         ###################         END  Data Calculations            #######################
-
+#             pca_full_covariance.plot_Init() # use defaults
+#             print(pca_full_covariance.figure)
         ###################            START DSLTmainEqn              #######################
         # FIGURE for the main PCA equation
         figDSLT, axDSLT = plt.subplots(1, 6, figsize=(8, 8))

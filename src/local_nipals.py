@@ -97,8 +97,20 @@ class nipals:
         self.mConS = np.copy(self.pCon)
         self.optSF = np.empty(self.N_PC)
         self.optSF[:] = np.nan
-
-        1  # maximum_iterations_PCs is the maximum number of iterations to perform for each PC
+        
+        self.fig_Size = [8,8]
+        self.fig_Resolution = 300
+        self.fig_Format = 'png'
+        self.fig_k = range( 0 , self.N_Obs , np.ceil(self.N_Obs/10).astype(int) )
+        self.fig_i = range( 0 , np.min((self.N_PC , 5 ) ) )
+        self.fig_Y_Label = ''
+        self.fig_X_Label = ''
+        self.fig_Show_Labels =  False
+        self.fig_Show_Values =  False
+        self.fig_Text_Size =  12
+        self.fig_Project = 'Graphical PCA Demo'
+        
+        # maximum_iterations_PCs is the maximum number of iterations to perform for each PC
         if maximum_iterations_PCs is not None:
             self.Max_It = maximum_iterations_PCs
 
@@ -135,7 +147,164 @@ class nipals:
         self.spectral_weights = spectral_weights
         self.min_spectral_values = min_spectral_values
         return
+    
+    def figure_Settings( 
+        self, 
+        size=None, 
+        res=None, 
+        frmt=None, 
+        k=None, 
+        i=None, 
+        Ylab=None, 
+        Xlab=None, 
+        Show_Labels=None, 
+        Show_Values=None, 
+        TxtSz=None,
+        Project=None
+    ):
+        # NOTE that the user is expected to update all settings in one call, otherwise excluded settings will revert to default
+        if self.X is None:
+                print('Data must be loaded into object in order to define plot parameters')
+                return
 
+        if size is not None:
+            if np.ndim(size) == 1 and np.shape(size)[0] == 2:
+                self.fig_Size = size
+            else:
+                print('Size should be a two value vector, reverting to default size of 8 x 8 cm')
+                self.fig_Size = [ 8 , 8 ]
+        else:
+            self.fig_Size = [ 8 , 8 ]
+
+        if res is not None:
+            if np.ndim(res) == 1 and np.shape(res)[0] == 1:
+                self.fig_Resolution = res
+            else:
+                print('Resolution should be a scalar, reverting to default resolution of 300 dpi')
+                self.fig_Resolution = 300
+        else:
+            self.fig_Resolution = 300
+
+        # dynamically get list of supported formats, based on accepted answer at https://stackoverflow.com/questions/7608066/in-matplotlib-is-there-a-way-to-know-the-list-of-available-output-format
+        # class has imported matplotlib so shouldn't need imported as in the answer
+        fig = plt.figure()
+        availFrmt = fig.canvas.get_supported_filetypes()
+        if frmt is not None:
+            if frmt in availFrmt:
+                self.fig_Format = frmt
+            else:
+                print('Format string not recognised, reverting to default of png')
+                self.fig_Format = 'png'
+        else:
+            self.fig_Format = 'png'
+
+        default_K = range( 0 , self.N_Obs , np.ceil(self.N_Obs/10).astype(int))
+        if k is not None:
+            if np.shape(k)[0]<3:
+                print('a minimum of 3 samples must be plotted to observe variation. Defaulting to stepping every 1/10th of dataset')
+                self.fig_k = default_K
+            elif np.shape(k)[0]>10:
+                print('a maximum of 10 samples permitted to prevent overcrowding. Defaulting to stepping every 1/10th of dataset')
+                self.fig_k = default_K
+            elif np.min(k)<0:
+                print('Cannot start indexing before 0. Defaulting to stepping every 1/10th of dataset')
+                self.fig_k = default_K
+            elif np.max(k)>self.N_Obs:
+                print('Cannot index beyond number of observations. Defaulting to stepping every 1/10th of dataset')
+                self.fig_k = default_K
+            else:
+                self.fig_k = k           
+        else:
+            self.fig_k = default_K
+
+        default_i = range( 0 , np.min((self.N_PC , 4, np.max(self.fig_k)-1) ) ) # N_PCs constrained to be less than k in local_NIPALS init
+        if i is not None:
+            if np.shape(i)[0] < 2:
+                print('a minimum of 2 pcs must be plotted to observe variation. Defaulting to 1st (max) 5 PCs')
+                self.fig_i = default_i
+            elif np.max(i) > (np.max(self.fig_k)-1):                     
+                print('a maximum of 9 pcs permitted to prevent overcrowding. Defaulting to 1st (max) 5 PCs')
+                self.fig_i = default_i
+            elif np.min(i)<0:
+                print('Cannot start indexing before 0. Defaulting to 1st (max) 5 PCs')
+                self.fig_i = default_i
+            elif np.max(i)>self.N_PC:
+                print('Cannot index beyond number of PCs. Defaulting to 1st (max) 5 PCs')
+                self.fig_i = default_i
+            else:
+                self.fig_i = i            
+        else:
+            self.fig_i = default_i
+
+
+        if Ylab is not None:
+            if isinstance(Ylab, str):
+                if len(Ylab)<33:
+                    self.fig_Y_Label = Ylab
+                else:
+                    print('Y label too long, truncating to 32 characters')
+                    self.fig_Y_Label = Ylab[:31]
+            else:
+                print('Y label is not a string, no Y label will be displayed')
+                self.fig_Y_Label = ''
+        else:
+            self.fig_Y_Label = ''
+
+        if Xlab is not None:
+            if isinstance(Xlab, str):
+                if len(Xlab)<33:
+                    self.fig_X_Label = Xlab
+                else:
+                    print('X label too long, truncating to 32 characters')
+                    self.fig_X_Label = Xlab[:31]
+            else:
+                print('X label is not a string, no X label will be displayed')
+                self.fig_X_Label = ''
+        else:
+            self.fig_X_Label = ''
+
+        if Show_Labels is not None:
+            if Show_Labels and (len(self.Y_Label)>0 or len(self.X_Label)>0):
+                self.fig_Show_Labels =  True
+            else:
+                self.fig_Show_Labels =  False        
+        else:
+            self.fig_Show_Labels =  False
+
+        if Show_Values is not None:
+            if Show_Values:
+                self.fig_Show_Values =  True
+            else:
+                self.fig_Show_Values =  False        
+        else:
+            self.fig_Show_Values =  False
+
+        if  TxtSz is not None:
+            if TxtSz<8:
+                print('Specified text size is below limit of 8, defaulting to 8')
+                self.fig_Text_Size =  8
+            elif TxtSz>18:
+                print('Specified text size is above limit of 18, defaulting to 18')
+                self.fig_Text_Size =  18
+            else:
+                self.fig_Text_Size =  TxtSz
+        else:
+            self.fig_Text_Size =  12
+        
+        if Project is not None:
+            if isinstance(Project, str):
+                if len(Project)<25:
+                    self.fig_Project = Project
+                else:
+                    print('Project code too long, truncating to 25 characters')
+                    self.fig_Project = Project[:24]
+            else:
+                print('Project code is not a string, default code "Graphical PCA Demo" applied')
+                self.fig_Project = 'Graphical PCA Demo'
+        else:
+            self.fig_Project = 'Graphical PCA Demo'
+           
+            
     def calc_PCA(self):
         #        print('initialising NIPALS algorithm')
         self.r.append(self.X)  # initialise the residual_i as the raw input data
@@ -291,7 +460,7 @@ class nipals:
         ## need to work out how to handle min_spectral_values
 
         # print('extracted positive and negative LEigenvector features')
-
+                    
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
