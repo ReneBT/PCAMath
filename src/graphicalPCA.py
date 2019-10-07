@@ -1,13 +1,9 @@
-import pypandoc
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 from matplotlib import transforms
 from sklearn.decomposition import PCA
-import os
-import pdb
-from pathlib import Path
 
 import src.local_nipals as npls
 
@@ -31,12 +27,6 @@ class graphicalPCA:
 
     def __init__(self):
         ###################            START Data Simulation              #######################
-# =============================================================================
-#         cwd = (
-#             os.getcwd()
-#         )  # record current working directory to create relative folder structure
-# 
-# =============================================================================
         # Read in simulated fatty acid spectra and associated experimental concentration data
         GC_data = sio.loadmat(
             data_folder / "FA profile data.jrb", struct_as_record=False
@@ -54,39 +44,14 @@ class graphicalPCA:
         molar_profile = GC_data["ANNSBUTTERmass"] / simplified_fatty_acid_spectra["FAproperties"][0, 0].MolarMass
         molar_profile = 100.0 * molar_profile / sum(molar_profile)
 
-# =============================================================================
-        # These lines of code were for exploring correlation, no longer part of current paper but intended for use in follow up
-#         # create a molar_profile with no correlation
-#         fatty_acids_mean = np.mean(molar_profile, 1)
-#         fatty_acids_stddev = np.std(molar_profile, 1)
-#         # generate random numbers in array same size as molar_profile, scale by 1fatty_acids_stddev then add on
-#         # mean value
-#         molar_profile_uncorrelated = np.random.randn(*molar_profile.shape)
-#         molar_profile_uncorrelated = (molar_profile_uncorrelated.transpose() * fatty_acids_stddev) + fatty_acids_mean
-#         molar_profile_uncorrelated = molar_profile_uncorrelated.transpose()
-# 
-#         # create a molar_profile with only 2 PCs
-#         nComp = 2
-#         pca = PCA(nComp)
-#         pca.fit(molar_profile)
-#         molar_profile2PC = np.dot(
-#             pca.transform(molar_profile)[:, :nComp], pca.components_[:nComp, :]
-#         )
-#         molar_profile2PC += pca.mean_
-# 
-# =============================================================================
-        # Now generate simulated spectra for each sample by multiplying the simulated FA reference
+       # Now generate simulated spectra for each sample by multiplying the simulated FA reference
         # spectra by the Fatty Acid profiles. Note that the simplified_fatty_acid_spectra spectra have a standard intensity in the
         # carbonyl mode peak (the peak with the highest pixel position)
         spectra_full_covariance = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile)
         min_spectra_full_covariance = np.dot(
             np.transpose(min_spectral_values), molar_profile
         )  # will allow scaling of min_spectral_values to individual sample
-# =============================================================================
-#         spectra2Cov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile2PC)
-#         spectraNoCov = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile_uncorrelated)
-#         # Sanity Check by plotting
-# =============================================================================
+
         plt.plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], spectra_full_covariance)
         plt.ylabel("Intensity")
         plt.xlabel("Raman Shift cm$^-1$")
@@ -111,13 +76,7 @@ class graphicalPCA:
             n_components=51
         )  # It uses the LAPACK implementation of the full SVD or a randomized truncated SVD by the method of Halko et al. 2009, depending on the shape of the input data and the number of components to extract.
         pca_full_covariance_builtin.fit(np.transpose(spectra_full_covariance))
-# =============================================================================
-#         PCA2CovBuiltIn = PCA(
-#             n_components=51
-#         )  # It uses the LAPACK implementation of the full SVD or a randomized truncated SVD by the method of Halko et al. 2009, depending on the shape of the input data and the number of components to extract.
-#         PCA2CovBuiltIn.fit(np.transpose(spectra2Cov))
-# 
-# =============================================================================
+
         # test convergence of PCs between NIPALS and SVD based on tolerance
         PCFulldiffTol = np.empty([15, 50])
 #        PC2diffTol = np.empty([15, 50])
@@ -143,24 +102,6 @@ class graphicalPCA:
                         ),
                     )
                 )  # capture cases of inverted REigenvectors (arbitrary sign switching)
-# =============================================================================
-#                 PC2diffTol[d, iPC] = np.log10(
-#                     np.minimum(
-#                         np.sum(
-#                             np.absolute(
-#                                 tempNIPALS.REigenvector[iPC,]
-#                                 - PCA2CovBuiltIn.components_[iPC,]
-#                             )
-#                         ),
-#                         np.sum(
-#                             np.absolute(
-#                                 tempNIPALS.REigenvector[iPC,]
-#                                 + pca_full_covariance_builtin.components_[iPC,]
-#                             )
-#                         ),
-#                     )
-#                 )  # capture cases of inverted REigenvectors (arbitrary sign switching)
-# =============================================================================
 
         # compare NIPALs output to builtin SVD based output for 1st PC, switching sign if necessary as this is arbitrary
         plt.plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.REigenvector[0,])
@@ -213,208 +154,32 @@ class graphicalPCA:
         plt.close()
 
         ###################         END  Data Calculations            #######################
-#             pca_full_covariance.plot_Init() # use defaults
-#             print(pca_full_covariance.figure)
+
+
         ###################            START DSLTmainEqn              #######################
         # FIGURE for the main PCA equation
-        figDSLT, axDSLT = plt.subplots(1, 6, figsize=(8, 8))
-        axDSLT[0] = plt.subplot2grid((5, 20), (0, 0), colspan=8, rowspan=5)
-        axDSLT[1] = plt.subplot2grid((5, 20), (0, 8), colspan=1, rowspan=5)
-        axDSLT[2] = plt.subplot2grid((5, 20), (0, 9), colspan=2, rowspan=5)
-        axDSLT[3] = plt.subplot2grid((5, 20), (0, 11), colspan=1, rowspan=5)
-        axDSLT[5] = plt.subplot2grid((5, 20), (0, 12), colspan=8, rowspan=1)
-        axDSLT[4] = plt.subplot2grid((5, 20), (1, 12), colspan=8, rowspan=2)
-        data4plot = np.empty([spectra_full_covariance.shape[0], 10])
-        dataSq4plot = np.empty([spectra_full_covariance.shape[0], 10])
-        REigenvectors4plot = np.empty([spectra_full_covariance.shape[0], 5])
-        LEigenvectors4plot = np.empty([10, 5])
-        SSQ = np.sum(pca_full_covariance.X ** 2, 1)
-        for iDat in range(10):
-            data4plot[:, iDat] = pca_full_covariance.X[:, iDat] + iDat * 16
-            dataSq4plot[:, iDat] = pca_full_covariance.X[:, iDat] ** 2 + iDat * 1000
-            LEigenvectors4plot[iDat, :] = pca_full_covariance.LEigenvector[iDat, 0:5] + iDat * 40
-        for iDat in range(5):
-            REigenvectors4plot[:, iDat] = (
-                pca_full_covariance.REigenvector[iDat, :] + 1 - iDat / 5
-            )
-        axDSLT[0].plot(data4plot)
-        axDSLT[2].plot(LEigenvectors4plot.transpose(), ".")
-        axDSLT[4].plot(
-            REigenvectors4plot,
-            transform=transforms.Affine2D().rotate_deg(90) + plt.gca().transData,
-        )
-        for iC in range(5):
-            axDSLT[4].lines[iC].set_color(str(0 + iC / 5))
-
-        axDSLT[0].annotate(
-            "$D_{-\mu}$",
-            xy=(0, 0),
-            xytext=(0.25, 0.9),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[0].annotate(
-            "$k=1$",
-            xy=(0.08, 0.07),
-            xytext=(0.08, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[0].annotate(
-            "$k=n$",
-            xy=(0.08, 0.06),
-            xytext=(0.08, 0.06),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[0].annotate(
-            "$j=1$",
-            xy=(0.2, 0.04),
-            xytext=(0.1, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[0].annotate(
-            "$j=p$",
-            xy=(0.2, 0.04),
-            xytext=(0.2, 0.04),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="left",
-            va="center",
-        )
-
-        axDSLT[1].annotate(
-            "=",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.5),
-            textcoords="axes fraction",
-            fontsize=18,
-            horizontalalignment="center",
-        )
-
-        axDSLT[2].annotate(
-            "$S$",
-            xy=(0.1, 0.9),
-            xytext=(0.52, 0.9),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="left",
-        )
-        axDSLT[2].annotate(
-            "$k=1$",
-            xy=(0.48, 0.07),
-            xytext=(0.48, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[2].annotate(
-            "$k=n$",
-            xy=(0.48, 0.06),
-            xytext=(0.48, 0.06),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[2].annotate(
-            "$i=1$",
-            xy=(0.6, 0.04),
-            xytext=(0.5, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[2].annotate(
-            "$i=d$",
-            xy=(0.6, 0.04),
-            xytext=(0.6, 0.04),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="left",
-            va="center",
-        )
-
-        axDSLT[3].annotate(
-            r"$\cdot$",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.5),
-            textcoords="axes fraction",
-            fontsize=32,
-            horizontalalignment="center",
-        )
-
-        axDSLT[4].annotate(
-            r"$L{^\top}$",
-            xy=(0.85, 0.9),
-            xytext=(0.8, 0.9),
-            xycoords="figure fraction",
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[4].annotate(
-            "$j=1$",
-            xy=(0.7, 0.07),
-            xytext=(0.7, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[4].annotate(
-            "$j=p$",
-            xy=(0.7, 0.06),
-            xytext=(0.7, 0.06),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDSLT[4].annotate(
-            "$i=1$",
-            xy=(0.85, 0.04),
-            xytext=(0.72, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=12,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[4].annotate(
-            "$i=d$",
-            xy=(0.85, 0.04),
-            xytext=(0.85, 0.04),
-            textcoords="figure fraction",
-            fontsize=12,
-            horizontalalignment="left",
-            va="center",
-        )
-
-        for iax in range(6):
-            axDSLT[iax].axis("off")
-        figDSLT.savefig(images_folder / "DSLTmainEqn.png", dpi=300)
-        plt.close()
+        pca_full_covariance.figure_DSLT()
         ###################             END  DSLTmainEqn              #######################
 
+
         ###################            START SLTDscoreEqn             #######################
-        # FIGURE for the Scores equation S = L^TD
+
+### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
+
+        data4plot = np.empty([spectra_full_covariance .shape[0],10])
+        dataSq4plot = np.empty([spectra_full_covariance .shape[0],10])
+        REigenvectors4plot = np.empty([spectra_full_covariance .shape[0],5])
+        LEigenvectors4plot = np.empty([10,5])
+        SSQ = np.sum(pca_full_covariance .X**2,1)
+        for iDat in range(10):
+            data4plot[:,iDat] = pca_full_covariance .X[:,iDat]+iDat*16
+            dataSq4plot[:,iDat] = pca_full_covariance .X[:,iDat]**2+iDat*1000
+            LEigenvectors4plot[iDat,:] = pca_full_covariance .LEigenvector[iDat,0:5]+iDat*40
+        for iDat in range(5):
+            REigenvectors4plot[:,iDat] = pca_full_covariance .REigenvector[iDat,:]+1-iDat/5
+
+
+       # FIGURE for the Scores equation S = L^TD
         figSLTD, axSLTD = plt.subplots(1, 6, figsize=(8, 8))
         axSLTD[0] = plt.subplot2grid((5, 20), (0, 0), colspan=2, rowspan=5)
         axSLTD[1] = plt.subplot2grid((5, 20), (0, 2), colspan=1, rowspan=5)
@@ -424,10 +189,7 @@ class graphicalPCA:
         axSLTD[5] = plt.subplot2grid((5, 20), (0, 13), colspan=9, rowspan=5)
 
         axSLTD[0].plot(LEigenvectors4plot.transpose(), ".")
-        axSLTD[3].plot(
-            REigenvectors4plot,
-            transform=transforms.Affine2D().rotate_deg(90) + axSLTD[3].transData,
-        )
+        axSLTD[3].plot(REigenvectors4plot)
         axSLTD[5].plot(data4plot)
 
         axSLTD[0].annotate(

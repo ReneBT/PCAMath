@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import ConnectionPatch
+from matplotlib import transforms
 from pathlib import Path
 
 # This expects to be called inside the jupyter project folder structure.
@@ -461,6 +463,258 @@ class nipals:
 
         # print('extracted positive and negative LEigenvector features')
                     
+    def figure_DSLT(self):
+        
+        figDSLT, axDSLT = plt.subplots(1, 3, figsize=(8, 8))
+        axDSLT[0] = plt.subplot2grid((5, 20), (0, 0), colspan=8, rowspan=5)
+        axDSLT[1] = plt.subplot2grid((5, 20), (0, 9), colspan=2, rowspan=5)
+        axDSLT[2] = plt.subplot2grid((5, 20), (1, 12), colspan=8, rowspan=3)
+        
+        data4plot = self.X[:,self.fig_k]
+        data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
+        data4plot = data4plot + data_spacing
+        data0lines = np.tile([data_spacing],(2,1))
+        
+        REigenvectors4plot = self.REigenvector[self.fig_i,:].transpose()
+        REig_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(REigenvectors4plot,axis=1))*4)
+        REigenvectors4plot = REigenvectors4plot + REig_spacing
+        REig0lines = np.tile([REig_spacing],(2,1))
+        
+        LEigenvectors4plot = self.LEigenvector[self.fig_k,:]
+        LEigenvectors4plot = LEigenvectors4plot[:,self.fig_i]
+        LEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(LEigenvectors4plot,axis=1))*1)
+        LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
+        LEig0lines = np.tile([LEig_spacing],(2,1))
+
+      
+        axDSLT[0].plot(self.pixel_axis, data4plot)
+        axDSLT[0].plot(self.pixel_axis[[0,-1]],data0lines)
+        axDSLT[1].plot(LEigenvectors4plot.transpose(), ".")
+        axDSLT[1].plot([0,np.shape(self.fig_i)[0]],LEig0lines, "-.")
+        axDSLT[2].plot(self.pixel_axis,REigenvectors4plot)
+        axDSLT[2].plot(self.pixel_axis[[0,-1]],REig0lines,'-.')
+        #,transform=transforms.Affine2D().rotate_deg(90) + plt.gca().transData,)
+        # originally printed in 90o rotation, but this applies to column vectors - D is displayed as a row vector, so LT should also be row. the transpose of S .LT returns D as a row vector. By cpnvention PCA done on column vectors. Need to handle this so as not to cause confusion but to retain consistency with math
+        for iC in range(np.shape(self.fig_i)[0]):
+            axDSLT[2].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
+            axDSLT[2].lines[iC+np.shape(self.fig_i)[0]].set_color(str(0 + iC / 5)) #shade zero lines
+
+
+        axDSLT[0].annotate(
+            "$D_{-\mu}$",
+            xy=(0.25, 0.95),
+            xytext=(0.25, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        axDSLT[0].annotate(
+            "$k=1$",
+            xy=(0.08, 0.07),
+            xytext=(0.08, 0.2),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[0].annotate(
+            "$k=n$",
+            xy=(0.08, 0.06),
+            xytext=(0.08, 0.06),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[0].annotate(
+            "$j=1$",
+            xy=(0.2, 0.04),
+            xytext=(0.1, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[0].annotate(
+            "$j=p$",
+            xy=(0.2, 0.04),
+            xytext=(0.2, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+            va="center",
+        )
+        axDSLT[0].annotate(
+            "$nxp$",
+            xy=(0.15, 0.12),
+            xytext=(0.15, 0.12),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+
+        axDSLT[1].annotate(
+            "=",
+            xy=(0.45, 0.5),
+            xytext=(0.45, 0.5),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*1.5,
+            horizontalalignment="center",
+        )
+
+        axDSLT[1].annotate(
+            "$S$",
+            xy=(0.1, 0.95),
+            xytext=(0.52, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        axDSLT[1].annotate(
+            "$k=1$",
+            xy=(0.45, 0.07),
+            xytext=(0.45, 0.2),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[1].annotate(
+            "$k=n$",
+            xy=(0.45, 0.06),
+            xytext=(0.45, 0.06),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[1].annotate(
+            "$i=1$",
+            xy=(0.57, 0.04),
+            xytext=(0.47, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[1].annotate(
+            "$i=d$",
+            xy=(0.57, 0.04),
+            xytext=(0.57, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+            va="center",
+        )
+
+        axDSLT[1].annotate(
+            "$nxd$",
+            xy=(0.52, 0.12),
+            xytext=(0.52, 0.12),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[2].annotate(
+            r"$\cdot$",
+            xy=(0.6, 0.5),
+            xytext=(0.6, 0.5),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*3,
+            horizontalalignment="center",
+        )
+
+        axDSLT[2].annotate(
+            r"$L{^\top}$",
+            xy=(0.85, 0.95),
+            xytext=(0.8, 0.95),
+            xycoords="figure fraction",
+            textcoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[2].annotate(
+            "$i=1$",
+            xy=(0.67, 0.07),
+            xytext=(0.67, 0.2),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[2].annotate(
+            "$i=d$",
+            xy=(0.67, 0.06),
+            xytext=(0.67, 0.06),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDSLT[2].annotate(
+            "$j=1$",
+            xy=(0.82, 0.04),
+            xytext=(0.69, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            arrowprops=dict(facecolor="black", shrink=0.05),
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[2].annotate(
+            "$dxp$",
+            xy=(0.75, 0.12),
+            xytext=(0.75, 0.12),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[2].annotate(
+            "$j=p$",
+            xy=(0.83, 0.04),
+            xytext=(0.83, 0.04),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+            va="center",
+        )
+
+        if not self.fig_Show_Values: 
+            for iax in range(len(axDSLT)):
+                axDSLT[iax].axis("off")
+            
+        if self.fig_Show_Labels:
+            axDSLT[0].set_ylabel(self.fig_Y_Label)
+            axDSLT[0].set_xlabel(self.fig_X_Label)
+            axDSLT[1].set_ylabel('Score / Arbitrary')
+            axDSLT[1].set_xlabel('Sample #')
+            axDSLT[2].set_ylabel('Weights / Arbitrary')
+            axDSLT[2].set_xlabel(self.fig_X_Label)
+            
+        figDSLT.savefig(str(images_folder) + "\\"+self.fig_Project + " DSLTmainEqn.png", dpi=self.fig_Resolution)
+        plt.close()
+    
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
@@ -503,7 +757,7 @@ class nipals:
                 xy=(txtpos),
                 xytext=(txtpos),
                 textcoords="data",
-                fontsize=8,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
             )
 
@@ -557,7 +811,7 @@ class nipals:
                     axlpniU[iFig].get_ylim()[1] * 0.9,
                 ),
                 textcoords="data",
-                fontsize=8,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
             )
         for iax in range(np.shape(axlpniU)[0]):
@@ -596,7 +850,7 @@ class nipals:
                 xy=(0.1, 0.9),
                 xytext=(pixel_axis[0] - 110, 0.9),
                 textcoords="data",
-                fontsize=20,
+                fontsize=self.fig_Text_Size*1.5,
                 horizontalalignment="left",
             )
 
@@ -611,7 +865,7 @@ class nipals:
                 xy=(0.1, 0.9),
                 xytext=(0.6, 0.9),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
             axlpni[5].plot(self.REigenvector[iPC, :], "m")
@@ -625,7 +879,7 @@ class nipals:
                 xytext=(0, 0.9),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 color="m",
             )
@@ -635,7 +889,7 @@ class nipals:
                 xytext=(0, 0.85),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 color="c",
             )
@@ -645,7 +899,7 @@ class nipals:
                 xytext=(0, 0.8),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 color="k",
             )
@@ -658,7 +912,7 @@ class nipals:
                 xytext=(0.1, 0.77),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 color="k",
             )
@@ -668,7 +922,7 @@ class nipals:
                 xy=(0, 0.5),
                 xytext=(0.5, 0.55),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
@@ -676,7 +930,7 @@ class nipals:
                 xy=(0, 0.5),
                 xytext=(0.5, 0.42),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
@@ -684,7 +938,7 @@ class nipals:
                 xy=(1, 0.5),
                 xytext=(0, 0.5),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
             )
@@ -693,7 +947,7 @@ class nipals:
                 xy=(0, 0.5),
                 xytext=(0.5, 0.55),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
             axlpni[4].annotate(
@@ -701,7 +955,7 @@ class nipals:
                 xy=(1, 0.5),
                 xytext=(0, 0.5),
                 textcoords="axes fraction",
-                fontsize=12,
+                fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
             )
@@ -732,3 +986,4 @@ class nipals:
         filename = f"lpniDeterminingCommonSignalScalingFactorsPC_{str(iPC + 1)}.png"
         plt.savefig(images_folder / filename, dpi=300)
         plt.close()
+
