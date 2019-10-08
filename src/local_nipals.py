@@ -398,6 +398,12 @@ class nipals:
         self.LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
         self.LEig0lines = np.tile([LEig_spacing],(2,1))
 
+        iLEigenvectors4plot = 1/self.LEigenvector[self.fig_k,:]
+        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]
+        iLEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(iLEigenvectors4plot,axis=1))*1)
+        self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
+        self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
+
     def calc_Constituents(self, iPC):
         # calculate the constituents that comprise the PC, splitting them into 3 parts:
         # Positive score weighted summed spectra - positive contributors to the PC
@@ -515,8 +521,12 @@ class nipals:
           
         axDSLT[v_Ord[0]].plot(self.pixel_axis, self.data4plot)
         axDSLT[v_Ord[0]].plot(self.pixel_axis[[0,-1]],self.data0lines)
-        axDSLT[v_Ord[1]].plot(self.LEigenvectors4plot.transpose(), ".")
-        axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
+        if arrangement == "LTSD": 
+            axDSLT[v_Ord[1]].plot(self.iLEigenvectors4plot.transpose(), ".")
+            axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.iLEig0lines, "-.")
+        else:
+            axDSLT[v_Ord[1]].plot(self.LEigenvectors4plot.transpose(), ".")
+            axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
         axDSLT[v_Ord[2]].plot(self.pixel_axis,self.REigenvectors4plot)
         axDSLT[v_Ord[2]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.')
         
@@ -543,9 +553,12 @@ class nipals:
             fontsize=self.fig_Text_Size*1.5,
             horizontalalignment="center",
         )
-        
+        if arrangement == "LTSD": 
+            s_Str = "$1/S$"
+        else:
+            s_Str = "$S$"
         axDSLT[v_Ord[1]].annotate(
-            "$S$",
+            s_Str,
             xy=(txt_Positions[2]),
             xytext=(txt_Positions[2]),
             textcoords="figure fraction",

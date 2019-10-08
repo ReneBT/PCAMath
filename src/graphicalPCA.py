@@ -165,6 +165,10 @@ class graphicalPCA:
         pca_full_covariance.figure_DSLT("SLTD")
         ###################             END  SLTDscoreEqn             #######################
 
+        ###################            START LTSDscoreEqn             #######################
+        pca_full_covariance.figure_DSLT("LTSD")
+        ###################             END  LTSDscoreEqn             #######################
+
 ### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
         data4plot = np.empty([spectra_full_covariance .shape[0],10])
         dataSq4plot = np.empty([spectra_full_covariance .shape[0],10])
@@ -178,70 +182,6 @@ class graphicalPCA:
         for iDat in range(5):
             REigenvectors4plot[:,iDat] = pca_full_covariance .REigenvector[iDat,:]+1-iDat/5
 
-
-
-
- 
-
-# =============================================================================
-#        # FIGURE for the Scores equation S = L^TD
-#         figSLTD, axSLTD = plt.subplots(1, 6, figsize=(8, 8))
-#         axSLTD[0] = plt.subplot2grid((5, 20), (0, 0), colspan=2, rowspan=5)
-#         axSLTD[1] = plt.subplot2grid((5, 20), (0, 2), colspan=1, rowspan=5)
-#         axSLTD[2] = plt.subplot2grid((5, 20), (0, 3), colspan=9, rowspan=1)
-#         axSLTD[3] = plt.subplot2grid((5, 20), (1, 3), colspan=9, rowspan=2)
-#         axSLTD[4] = plt.subplot2grid((5, 20), (0, 12), colspan=1, rowspan=5)
-#         axSLTD[5] = plt.subplot2grid((5, 20), (0, 13), colspan=9, rowspan=5)
-# 
-#         axSLTD[0].plot(LEigenvectors4plot.transpose(), ".")
-#         axSLTD[3].plot(REigenvectors4plot)
-#         axSLTD[5].plot(data4plot)
-# 
-#         axSLTD[0].annotate(
-#             "$S$",
-#             xy=(0.1, 0.9),
-#             xytext=(0.5, 0.95),
-#             textcoords="axes fraction",
-#             fontsize=12,
-#             horizontalalignment="center",
-#         )
-#         axSLTD[1].annotate(
-#             "=",
-#             xy=(0.5, 0.5),
-#             xytext=(0.5, 0.5),
-#             textcoords="axes fraction",
-#             fontsize=18,
-#             horizontalalignment="center",
-#         )
-#         axSLTD[2].annotate(
-#             r"$L{^\top}$",
-#             xy=(0.1, 0.9),
-#             xytext=(0.5, 0.95),
-#             textcoords="axes fraction",
-#             fontsize=12,
-#             horizontalalignment="center",
-#         )
-#         axSLTD[4].annotate(
-#             r"$\cdot$",
-#             xy=(0.5, 0.5),
-#             xytext=(0.5, 0.5),
-#             textcoords="axes fraction",
-#             fontsize=38,
-#             horizontalalignment="center",
-#         )
-#         axSLTD[5].annotate(
-#             "$D_{-\mu}$",
-#             xy=(0.1, 0.9),
-#             xytext=(0.5, 0.95),
-#             textcoords="axes fraction",
-#             fontsize=12,
-#             horizontalalignment="center",
-#         )
-#         for iax in range(6):
-#             axSLTD[iax].axis("off")
-#         figSLTD.savefig(images_folder / "SLTDscoreEqn.png", dpi=300)
-#         plt.close()
-# =============================================================================
 
         ###################         START sldiLEigenvectorEqn         #######################
         # FIGURE for the ith LEigenvector equation si = lixD
@@ -496,65 +436,7 @@ class graphicalPCA:
         iSamResCorr = np.corrcoef(iSamResMin, iSamResZer)[0, 1] ** 2
         ###################              END sldiResidual            #######################
 
-        # ###################              START LSDscoreEqn            #######################
-        # FIGURE for the REigenvectoring equation L = S-1D
-        figLSD, axLSD = plt.subplots(1, 5, figsize=(8, 8))
-        axLSD[0] = plt.subplot2grid((1, 20), (0, 0), colspan=8)
-        axLSD[1] = plt.subplot2grid((1, 20), (0, 8), colspan=1)
-        axLSD[2] = plt.subplot2grid((1, 20), (0, 9), colspan=2)
-        axLSD[3] = plt.subplot2grid((1, 20), (0, 11), colspan=1)
-        axLSD[4] = plt.subplot2grid((1, 20), (0, 12), colspan=8)
-
-        axLSD[0].plot(REigenvectors4plot)
-        axLSD[2].plot(LEigenvectors4plot.transpose(), ".")
-        axLSD[4].plot(data4plot)
-
-        axLSD[0].annotate(
-            r"$L{^\top}$",
-            xy=(0.1, 0.95),
-            xytext=(0.5, 0.95),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axLSD[1].annotate(
-            "=",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.5),
-            textcoords="axes fraction",
-            fontsize=18,
-            horizontalalignment="center",
-        )
-        axLSD[2].annotate(
-            "$1/S$",
-            xy=(0.1, 0.95),
-            xytext=(0.5, 0.95),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axLSD[3].annotate(
-            r"$\times$",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.5),
-            textcoords="axes fraction",
-            fontsize=18,
-            horizontalalignment="center",
-        )
-        axLSD[4].annotate(
-            "$D_{-\mu}$",
-            xy=(0.1, 0.95),
-            xytext=(0.5, 0.95),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        for iax in range(5):
-            axLSD[iax].axis("off")
-        figLSD.savefig(images_folder / "LSDscoreEqn.png", dpi=300)
-        plt.close()
-        ###################              END  LSDscoreEqn             #######################
-
+ 
         ###################        START lsdiLEigenvectorEqn          #######################
         # FIGURE for the ith REigenvector equation Li = 1/Si*D
         figlsdi, axlsdi = plt.subplots(1, 5, figsize=(8, 8))
