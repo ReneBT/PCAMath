@@ -112,6 +112,7 @@ class nipals:
         self.fig_Text_Size =  12
         self.fig_Project = 'Graphical PCA Demo'
         
+
         # maximum_iterations_PCs is the maximum number of iterations to perform for each PC
         if maximum_iterations_PCs is not None:
             self.Max_It = maximum_iterations_PCs
@@ -148,6 +149,7 @@ class nipals:
         )  # residual error at each pixel for each PC (0 will be initial data, so indexing will equal the PC number)
         self.spectral_weights = spectral_weights
         self.min_spectral_values = min_spectral_values
+
         return
     
     def figure_Settings( 
@@ -305,6 +307,8 @@ class nipals:
                 self.fig_Project = 'Graphical PCA Demo'
         else:
             self.fig_Project = 'Graphical PCA Demo'
+        
+        self.prepare_Data() #update offset data for plotting equations
            
             
     def calc_PCA(self):
@@ -374,6 +378,25 @@ class nipals:
             self.rE[iPC + 1, :] = np.sum(
                 self.r[iPC + 1] ** 2, 1
             )  # calculate residual variance
+            self.prepare_Data()
+            
+    def prepare_Data(self):
+        
+        data4plot = self.X[:,self.fig_k]
+        data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
+        self.data4plot = data4plot + data_spacing
+        self.data0lines = np.tile([data_spacing],(2,1))
+        
+        REigenvectors4plot = self.REigenvector[self.fig_i,:].transpose()
+        REig_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(REigenvectors4plot,axis=1))*4)
+        self.REigenvectors4plot = REigenvectors4plot + REig_spacing
+        self.REig0lines = np.tile([REig_spacing],(2,1))
+        
+        LEigenvectors4plot = self.LEigenvector[self.fig_k,:]
+        LEigenvectors4plot = LEigenvectors4plot[:,self.fig_i]
+        LEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(LEigenvectors4plot,axis=1))*1)
+        self.LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
+        self.LEig0lines = np.tile([LEig_spacing],(2,1))
 
     def calc_Constituents(self, iPC):
         # calculate the constituents that comprise the PC, splitting them into 3 parts:
@@ -463,258 +486,265 @@ class nipals:
 
         # print('extracted positive and negative LEigenvector features')
                     
-    def figure_DSLT(self):
+    def figure_DSLT(self, arrangement):
+
+        grid_Column = np.array([8, 2, 8])
+        #        grid_Row = np.array([5, 5, 3])
+        if arrangement == "DSLT":
+            v_Ord = np.array([0,1,2]) #Variable axis order for equation plot
+            #                   D           =           S           .           LT
+            txt_Positions = [[0.25, 0.95],[0.43, 0.5],[0.52, 0.95],[0.51, 0.5],[0.8, 0.95]]
+        elif arrangement == "SLTD": 
+            v_Ord = np.array([1,0,2])
+            txt_Positions = [[0.8, 0.95],[0.2, 0.5],[.1, 0.95],[0.51, 0.5],[0.4, 0.95]]
+        elif arrangement == "LTSD": 
+            v_Ord = np.array([2,1,0])
+            #                   D           =           S           .           LT
+            txt_Positions = [[0.8, 0.95],[0.43, 0.5],[0.52, 0.95],[0.55, 0.5],[0.25, 0.95]]
+        else:
+            print(str(arrangement)+" is not a valid option. Use DSLT, SLTD or LTSD") 
+        #    return
         
+        columns_ordered = [0, grid_Column[v_Ord[0]],np.sum(grid_Column[v_Ord[:-1]])]
+        #determine correct column starting positions
         figDSLT, axDSLT = plt.subplots(1, 3, figsize=(8, 8))
-        axDSLT[0] = plt.subplot2grid((5, 20), (0, 0), colspan=8, rowspan=5)
-        axDSLT[1] = plt.subplot2grid((5, 20), (0, 9), colspan=2, rowspan=5)
-        axDSLT[2] = plt.subplot2grid((5, 20), (1, 12), colspan=8, rowspan=3)
+        axDSLT[v_Ord[0]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[0]]), colspan=8, rowspan=5)
+        axDSLT[v_Ord[1]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[1]]), colspan=2, rowspan=5)
+        axDSLT[v_Ord[2]] = plt.subplot2grid((5, 20), (1, columns_ordered[v_Ord[2]]), colspan=8, rowspan=3)
         
-        data4plot = self.X[:,self.fig_k]
-        data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
-        data4plot = data4plot + data_spacing
-        data0lines = np.tile([data_spacing],(2,1))
+          
+        axDSLT[v_Ord[0]].plot(self.pixel_axis, self.data4plot)
+        axDSLT[v_Ord[0]].plot(self.pixel_axis[[0,-1]],self.data0lines)
+        axDSLT[v_Ord[1]].plot(self.LEigenvectors4plot.transpose(), ".")
+        axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
+        axDSLT[v_Ord[2]].plot(self.pixel_axis,self.REigenvectors4plot)
+        axDSLT[v_Ord[2]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.')
         
-        REigenvectors4plot = self.REigenvector[self.fig_i,:].transpose()
-        REig_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(REigenvectors4plot,axis=1))*4)
-        REigenvectors4plot = REigenvectors4plot + REig_spacing
-        REig0lines = np.tile([REig_spacing],(2,1))
-        
-        LEigenvectors4plot = self.LEigenvector[self.fig_k,:]
-        LEigenvectors4plot = LEigenvectors4plot[:,self.fig_i]
-        LEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(LEigenvectors4plot,axis=1))*1)
-        LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
-        LEig0lines = np.tile([LEig_spacing],(2,1))
-
-      
-        axDSLT[0].plot(self.pixel_axis, data4plot)
-        axDSLT[0].plot(self.pixel_axis[[0,-1]],data0lines)
-        axDSLT[1].plot(LEigenvectors4plot.transpose(), ".")
-        axDSLT[1].plot([0,np.shape(self.fig_i)[0]],LEig0lines, "-.")
-        axDSLT[2].plot(self.pixel_axis,REigenvectors4plot)
-        axDSLT[2].plot(self.pixel_axis[[0,-1]],REig0lines,'-.')
-        #,transform=transforms.Affine2D().rotate_deg(90) + plt.gca().transData,)
-        # originally printed in 90o rotation, but this applies to column vectors - D is displayed as a row vector, so LT should also be row. the transpose of S .LT returns D as a row vector. By cpnvention PCA done on column vectors. Need to handle this so as not to cause confusion but to retain consistency with math
         for iC in range(np.shape(self.fig_i)[0]):
-            axDSLT[2].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
-            axDSLT[2].lines[iC+np.shape(self.fig_i)[0]].set_color(str(0 + iC / 5)) #shade zero lines
-
-
-        axDSLT[0].annotate(
+            axDSLT[v_Ord[2]].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
+            axDSLT[v_Ord[2]].lines[iC+np.shape(self.fig_i)[0]].set_color(str(0 + iC / 5)) #shade zero lines
+        
+        
+        axDSLT[v_Ord[0]].annotate(
             "$D_{-\mu}$",
-            xy=(0.25, 0.95),
-            xytext=(0.25, 0.95),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="left",
-        )
-        axDSLT[0].annotate(
-            "$k=1$",
-            xy=(0.08, 0.07),
-            xytext=(0.08, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-        )
-        axDSLT[0].annotate(
-            "$k=n$",
-            xy=(0.08, 0.06),
-            xytext=(0.08, 0.06),
+            xy=(txt_Positions[0]),
+            xytext=(txt_Positions[0]),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
-        axDSLT[0].annotate(
-            "$j=1$",
-            xy=(0.2, 0.04),
-            xytext=(0.1, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[0].annotate(
-            "$j=p$",
-            xy=(0.2, 0.04),
-            xytext=(0.2, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="left",
-            va="center",
-        )
-        axDSLT[0].annotate(
-            "$nxp$",
-            xy=(0.15, 0.12),
-            xytext=(0.15, 0.12),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-
-        axDSLT[1].annotate(
+        axDSLT[v_Ord[1]].annotate(
             "=",
-            xy=(0.45, 0.5),
-            xytext=(0.45, 0.5),
+            xy=(txt_Positions[1]),
+            xytext=(txt_Positions[1]),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size*1.5,
             horizontalalignment="center",
         )
-
-        axDSLT[1].annotate(
+        
+        axDSLT[v_Ord[1]].annotate(
             "$S$",
-            xy=(0.1, 0.95),
-            xytext=(0.52, 0.95),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="left",
-        )
-        axDSLT[1].annotate(
-            "$k=1$",
-            xy=(0.45, 0.07),
-            xytext=(0.45, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-        )
-        axDSLT[1].annotate(
-            "$k=n$",
-            xy=(0.45, 0.06),
-            xytext=(0.45, 0.06),
+            xy=(txt_Positions[2]),
+            xytext=(txt_Positions[2]),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
-        axDSLT[1].annotate(
-            "$i=1$",
-            xy=(0.57, 0.04),
-            xytext=(0.47, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[1].annotate(
-            "$i=d$",
-            xy=(0.57, 0.04),
-            xytext=(0.57, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="left",
-            va="center",
-        )
-
-        axDSLT[1].annotate(
-            "$nxd$",
-            xy=(0.52, 0.12),
-            xytext=(0.52, 0.12),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[2].annotate(
+        axDSLT[v_Ord[2]].annotate(
             r"$\cdot$",
-            xy=(0.6, 0.5),
-            xytext=(0.6, 0.5),
+            xy=(txt_Positions[3]),
+            xytext=(txt_Positions[3]),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size*3,
             horizontalalignment="center",
         )
-
-        axDSLT[2].annotate(
+        axDSLT[v_Ord[2]].annotate(
             r"$L{^\top}$",
-            xy=(0.85, 0.95),
-            xytext=(0.8, 0.95),
+            xy=(txt_Positions[4]),
+            xytext=(txt_Positions[4]),
             xycoords="figure fraction",
             textcoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
-        axDSLT[2].annotate(
-            "$i=1$",
-            xy=(0.67, 0.07),
-            xytext=(0.67, 0.2),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-        )
-        axDSLT[2].annotate(
-            "$i=d$",
-            xy=(0.67, 0.06),
-            xytext=(0.67, 0.06),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-        )
-        axDSLT[2].annotate(
-            "$j=1$",
-            xy=(0.82, 0.04),
-            xytext=(0.69, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            arrowprops=dict(facecolor="black", shrink=0.05),
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[2].annotate(
-            "$dxp$",
-            xy=(0.75, 0.12),
-            xytext=(0.75, 0.12),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="center",
-            va="center",
-        )
-        axDSLT[2].annotate(
-            "$j=p$",
-            xy=(0.83, 0.04),
-            xytext=(0.83, 0.04),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
-            fontsize=self.fig_Text_Size,
-            horizontalalignment="left",
-            va="center",
-        )
-
+        if arrangement == "DSLT": #only put dimensions on the main plot
+            axDSLT[v_Ord[0]].annotate(
+                "$k=1$",
+                xy=(0.08, 0.07),
+                xytext=(0.08, 0.2),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[0]].annotate(
+                "$k=n$",
+                xy=(0.08, 0.06),
+                xytext=(0.08, 0.06),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[0]].annotate(
+                "$j=1$",
+                xy=(0.2, 0.04),
+                xytext=(0.1, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            axDSLT[v_Ord[0]].annotate(
+                "$j=p$",
+                xy=(0.2, 0.04),
+                xytext=(0.2, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                va="center",
+            )
+            axDSLT[v_Ord[0]].annotate(
+                "$nxp$",
+                xy=(0.15, 0.12),
+                xytext=(0.15, 0.12),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            
+            axDSLT[v_Ord[1]].annotate(
+                "$k=1$",
+                xy=(0.45, 0.07),
+                xytext=(0.45, 0.2),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[1]].annotate(
+                "$k=n$",
+                xy=(0.45, 0.06),
+                xytext=(0.45, 0.06),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[1]].annotate(
+                "$i=1$",
+                xy=(0.57, 0.04),
+                xytext=(0.47, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            axDSLT[v_Ord[1]].annotate(
+                "$i=d$",
+                xy=(0.57, 0.04),
+                xytext=(0.57, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                va="center",
+            )
+            
+            axDSLT[v_Ord[1]].annotate(
+                "$nxd$",
+                xy=(0.52, 0.12),
+                xytext=(0.52, 0.12),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            axDSLT[v_Ord[2]].annotate(
+                "$i=1$",
+                xy=(0.67, 0.07),
+                xytext=(0.67, 0.2),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[2]].annotate(
+                "$i=d$",
+                xy=(0.67, 0.06),
+                xytext=(0.67, 0.06),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axDSLT[v_Ord[2]].annotate(
+                "$j=1$",
+                xy=(0.82, 0.04),
+                xytext=(0.69, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black", shrink=0.05),
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            axDSLT[v_Ord[2]].annotate(
+                "$dxp$",
+                xy=(0.75, 0.12),
+                xytext=(0.75, 0.12),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                va="center",
+            )
+            axDSLT[v_Ord[2]].annotate(
+                "$j=p$",
+                xy=(0.83, 0.04),
+                xytext=(0.83, 0.04),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                va="center",
+            )
+        
         if not self.fig_Show_Values: 
             for iax in range(len(axDSLT)):
                 axDSLT[iax].axis("off")
             
         if self.fig_Show_Labels:
-            axDSLT[0].set_ylabel(self.fig_Y_Label)
-            axDSLT[0].set_xlabel(self.fig_X_Label)
-            axDSLT[1].set_ylabel('Score / Arbitrary')
-            axDSLT[1].set_xlabel('Sample #')
-            axDSLT[2].set_ylabel('Weights / Arbitrary')
-            axDSLT[2].set_xlabel(self.fig_X_Label)
+            axDSLT[v_Ord[0]].set_ylabel(self.fig_Y_Label)
+            axDSLT[v_Ord[0]].set_xlabel(self.fig_X_Label)
+            axDSLT[v_Ord[1]].set_ylabel('Score / Arbitrary')
+            axDSLT[v_Ord[1]].set_xlabel('Sample #')
+            axDSLT[v_Ord[2]].set_ylabel('Weights / Arbitrary')
+            axDSLT[v_Ord[2]].set_xlabel(self.fig_X_Label)
             
-        figDSLT.savefig(str(images_folder) + "\\"+self.fig_Project + " DSLTmainEqn.png", dpi=self.fig_Resolution)
-        plt.close()
-    
+        figDSLT.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project + " "+ 
+                arrangement +" Eqn.png", 
+                dpi=self.fig_Resolution
+                )
+#        plt.show()
+        
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
