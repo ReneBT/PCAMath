@@ -42,7 +42,7 @@ class nipals:
         #            if other types are desired please handle these prior to calling this class
         #            Note that only one centering method and one scaling method will be implmented. If more are present then the
         #            implmented one will be the first in the above list.
-        # pixel_axis    is a vector of values for each pixel in the x-axis or a tuple specifying a fX_dataed interval spacing
+        # pixel_axis    is a vector of values for each pixel in the x-axis or a tuple specifying a fixed interval spacing
         #         (2 values for unit spacing, 3 values for non-unit spacing)
         # spectral_weights  is the array of the weights used to combine the simulated reference spectra into the simulated sample spectra
 
@@ -494,7 +494,8 @@ class nipals:
                     
     def figure_DSLT(self, arrangement):
 
-        grid_Column = np.array([8, 2, 8])
+        grid_Column = np.array( [8, 2, 8] )
+        sub_Fig = [ "A" , "B" , "C" ]
         #        grid_Row = np.array([5, 5, 3])
         if arrangement == "DSLT":
             v_Ord = np.array([0,1,2]) #Variable axis order for equation plot
@@ -513,7 +514,7 @@ class nipals:
         
         columns_ordered = [0, grid_Column[v_Ord[0]],np.sum(grid_Column[v_Ord[:-1]])]
         #determine correct column starting positions
-        figDSLT, axDSLT = plt.subplots(1, 3, figsize=(8, 8))
+        figDSLT, axDSLT = plt.subplots(1, 3,figsize=self.fig_Size)
         axDSLT[v_Ord[0]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[0]]), colspan=8, rowspan=5)
         axDSLT[v_Ord[1]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[1]]), colspan=2, rowspan=5)
         axDSLT[v_Ord[2]] = plt.subplot2grid((5, 20), (1, columns_ordered[v_Ord[2]]), colspan=8, rowspan=3)
@@ -536,7 +537,7 @@ class nipals:
         
         
         axDSLT[v_Ord[0]].annotate(
-            "$D_{-\mu}$",
+            sub_Fig[v_Ord[0]]+"$D_{-\mu}$",
             xy=(txt_Positions[0]),
             xytext=(txt_Positions[0]),
             textcoords="figure fraction",
@@ -554,9 +555,9 @@ class nipals:
             horizontalalignment="center",
         )
         if arrangement == "LTSD": 
-            s_Str = "$1/S$"
+            s_Str = sub_Fig[v_Ord[1]]+") $1/S$"
         else:
-            s_Str = "$S$"
+            s_Str = sub_Fig[v_Ord[1]]+") $S$"
         axDSLT[v_Ord[1]].annotate(
             s_Str,
             xy=(txt_Positions[2]),
@@ -576,7 +577,7 @@ class nipals:
             horizontalalignment="center",
         )
         axDSLT[v_Ord[2]].annotate(
-            r"$L{^\top}$",
+            sub_Fig[v_Ord[2]]+") "+r"$L{^\top}$",
             xy=(txt_Positions[4]),
             xytext=(txt_Positions[4]),
             xycoords="figure fraction",
@@ -753,10 +754,389 @@ class nipals:
         figDSLT.savefig(
                 str(images_folder) + "\\" +
                 self.fig_Project + " "+ 
-                arrangement +" Eqn.png", 
+                arrangement +" Eqn."+self.fig_Format, 
                 dpi=self.fig_Resolution
                 )
 #        plt.show()
+        plt.close()
+        
+    def figure_sldi(self, iPC):
+            # plots the vector process for how scores are calculated to compliment the 
+    # relevant math equation, rather than directly represent it. 
+    # iPC is the PC number, not index so starts at 1 for the first PC
+    
+    # vector plots differ radically so not simple to create common function
+        if iPC is None:
+            iPC = self.fig_i[0]+1 #internal list is python index so need to add 1 for compatibility
+            print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
+        figsldi, axsldi = plt.subplots(1, 5, figsize=self.fig_Size)
+        axsldi[0] = plt.subplot2grid((1, 20), (0, 0), colspan=8)
+        axsldi[1] = plt.subplot2grid((1, 20), (0, 8), colspan=1)
+        axsldi[2] = plt.subplot2grid((1, 20), (0, 9), colspan=8)
+        axsldi[3] = plt.subplot2grid((1, 20), (0, 17), colspan=1)
+        axsldi[4] = plt.subplot2grid((1, 20), (0, 18), colspan=2)
+    
+        iSamMin = np.argmin(self.LEigenvector[:, iPC - 1])
+        iSamMax = np.argmax(self.LEigenvector[:, iPC - 1])
+        iSamZer = np.argmin(
+            np.abs(self.LEigenvector[:, iPC - 1])
+        )  # Sam = 43 #the ith sample to plot
+        sf_iSam = np.mean(
+            [
+                sum(self.X[:, iSamMin] ** 2) ** 0.5,
+                sum(self.X[:, iSamMax] ** 2) ** 0.5,
+                sum(self.X[:, iSamZer] ** 2) ** 0.5,
+            ]
+        )  # use samescaling factor to preserve relative intensity
+        offset = np.max(self.REigenvector[iPC - 1, :]) - np.min(
+            self.REigenvector[iPC - 1, :]
+        )  # offset for clarity
+        axsldi[0].plot(
+            self.pixel_axis,
+            self.REigenvector[iPC - 1, :] + offset * 1.25,
+            "k",
+            self.pixel_axis,
+            self.X[:, iSamMax] / sf_iSam + offset / 4,
+            "r",
+            self.pixel_axis,
+            self.X[:, iSamZer] / sf_iSam,
+            "b",
+            self.pixel_axis,
+            self.X[:, iSamMin] / sf_iSam - offset / 4,
+            "g",
+            self.pixel_axis[[0,-1]],
+            np.tile(offset *1.25,(2,1)),
+            "-.k",
+            self.pixel_axis[[0,-1]],
+            np.tile(offset /4,(2,1)),
+            "-.r",
+            self.pixel_axis[[0,-1]],
+            np.tile(0,(2,1)),
+            "-.b",
+            self.pixel_axis[[0,-1]],
+            np.tile(-offset / 4,(2,1)),
+            "-.g",
+        )
+        axsldi[0].legend(("$pc_i$", "$d_{max}$", "$d_0$", "$d_{min}$"))
+        temp = self.REigenvector[iPC - 1, :] * self.X[:, iSamZer]
+        offsetProd = np.max(temp) - np.min(temp)
+        axsldi[2].plot(
+            self.pixel_axis,
+            self.REigenvector[iPC - 1, :] * self.X[:, iSamMax] + offsetProd,
+            "r",
+            self.pixel_axis[[0,-1]],
+            np.tile(offsetProd,(2,1)),
+            "-.r",
+            self.pixel_axis,
+            self.REigenvector[iPC - 1, :] * self.X[:, iSamZer],
+            "b",
+            self.pixel_axis[[0,-1]],
+            np.tile(0,(2,1)),
+            "-.b",
+            self.pixel_axis,
+            self.REigenvector[iPC - 1, :] * self.X[:, iSamMin] - offsetProd,
+            "g",
+            self.pixel_axis[[0,-1]],
+            np.tile(-offsetProd,(2,1)),
+            "-.g",
+        )
+    
+        PCilims = np.tile(
+            np.array(
+                [
+                    np.average(self.LEigenvector[:, iPC - 1])
+                    - 1.96 * np.std(self.LEigenvector[:, iPC - 1]),
+                    np.average(self.LEigenvector[:, iPC - 1]),
+                    np.average(self.LEigenvector[:, iPC - 1])
+                    + 1.96 * np.std(self.LEigenvector[:, iPC - 1]),
+                ]
+            ),
+            (2, 1),
+        )
+        axsldi[4].plot(
+            [0, 10],
+            PCilims,
+            "k--",
+            5,
+            self.LEigenvector[iSamMax, iPC - 1],
+            "r.",
+            5,
+            self.LEigenvector[iSamZer, iPC - 1],
+            "b.",
+            5,
+            self.LEigenvector[iSamMin, iPC - 1],
+            "g.",
+            markersize=10,
+        )
+        ylimLEV = (
+            np.abs(
+                [
+                    self.LEigenvector[:, iPC - 1].min(),
+                    self.LEigenvector[:, iPC - 1].max(),
+                ]
+            ).max()
+            * 1.05
+        )
+        axsldi[4].set_ylim([-ylimLEV, ylimLEV])
+        
+        axsldi[0].annotate(
+            "A) PC"+str(iPC)+" and data",
+            xy=(0.2, 0.95),
+            xytext=(0.25, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldi[1].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axsldi[1].annotate(
+            r"$pc_i \times d_i$",
+            xy=(0.5, 0.5),
+            xytext=(0.5, 0.52),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldi[2].annotate(
+            "B) PC weighted data",
+            xy=(0.55, 0.95),
+            xytext=(0.6, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldi[3].annotate(
+            "$\Sigma _{v=1}^{v=p}$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.52),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldi[3].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axsldi[0].annotate(
+            "C) Score",
+            xy=(0.3, 0.95),
+            xytext=(0.87, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldi[4].annotate(
+            "$U95CI$",
+            xy=(5, PCilims[0, 2]),
+            xytext=(10, PCilims[0, 2]),
+            xycoords="data",
+            textcoords="data",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        axsldi[4].annotate(
+            "$\overline{S_{i}}$",
+            xy=(0, 0.9),
+            xytext=(1, 0.49),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        axsldi[4].annotate(
+            "$L95CI$",
+            xy=(5, PCilims[0, 0]),
+            xytext=(10, PCilims[0, 0]),
+            xycoords="data",
+            textcoords="data",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="left",
+        )
+     
+        if not self.fig_Show_Values: 
+            for iax in range(len(axsldi)):
+                axsldi[iax].axis("off")
+            
+        if self.fig_Show_Labels:
+            axsldi[0].set_ylabel(self.fig_Y_Label)
+            axsldi[0].set_xlabel(self.fig_X_Label)
+            axsldi[2].set_ylabel('PC Weighted ' + self.fig_Y_Label)
+            axsldi[2].set_xlabel(self.fig_X_Label)
+            axsldi[4].set_ylabel('Weights / Arbitrary')
+        figsldi.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project + 
+                " sldi Eqn." + 
+                self.fig_Format, 
+                dpi=self.fig_Resolution
+                )    
+#        plt.show()
+        plt.close()
+        
+        figsldiRes, axsldiRes = plt.subplots(1, 3, figsize=self.fig_Size)
+        axsldiRes[0] = plt.subplot2grid((1, 17), (0, 0), colspan=8)
+        axsldiRes[1] = plt.subplot2grid((1, 17), (0, 8), colspan=1)
+        axsldiRes[2] = plt.subplot2grid((1, 17), (0, 9), colspan=8)
+
+        iSamResMax = self.X[:, iSamMax] - np.inner(
+            self.LEigenvector[iSamMax, iPC - 1],
+            self.REigenvector[iPC - 1, :],
+        )
+        iSamResZer = self.X[:, iSamZer] - np.inner(
+            self.LEigenvector[iSamZer, iPC - 1],
+            self.REigenvector[iPC - 1, :],
+        )
+        iSamResMin = self.X[:, iSamMin] - np.inner(
+            self.LEigenvector[iSamMin, iPC - 1],
+            self.REigenvector[iPC - 1, :],
+        )
+#        offsetRes = np.max(iSamResZer) - np.min(iSamResZer)
+
+        axsldiRes[0].plot(
+            self.pixel_axis,
+            self.X[:, iSamMax] / sf_iSam + offset / 4,
+            "r",
+            self.pixel_axis,
+            self.X[:, iSamZer] / sf_iSam,
+            "b",
+            self.pixel_axis,
+            self.X[:, iSamMin] / sf_iSam - offset / 4,
+            "g",
+            self.pixel_axis,
+            np.inner(
+                self.LEigenvector[iSamMax, iPC - 1],
+                self.REigenvector[iPC - 1, :],
+            )
+            / sf_iSam
+            + offset / 4,
+            "k--",
+            self.pixel_axis[[0,-1]],
+            np.tile(offset / 4,(2,1)),
+            "-.r",
+            self.pixel_axis[[0,-1]],
+            np.tile(0,(2,1)),
+            "-.b",
+            self.pixel_axis[[0,-1]],
+            np.tile(-offset / 4,(2,1)),
+            "-.g",
+            self.pixel_axis,
+            np.inner(
+                self.LEigenvector[iSamZer, iPC - 1],
+                self.REigenvector[iPC - 1, :],
+            )
+            / sf_iSam,
+            "k--",
+            self.pixel_axis,
+            np.inner(
+                self.LEigenvector[iSamMin, iPC - 1],
+                self.REigenvector[iPC - 1, :],
+            )
+            / sf_iSam
+            - offset / 4,
+            "k--",
+        )
+        axsldiRes[0].legend(("$d_{max}$", "$d_0$", "$d_{min}$", "$pc_i*d_{j}$"))
+
+        axsldiRes[2].plot(
+            self.pixel_axis,
+            iSamResMax/sf_iSam + offset / 4,
+            "r",
+            self.pixel_axis[[0,-1]],
+            np.tile(offset / 4,(2,1)),
+            "-.r",
+            self.pixel_axis,
+            iSamResZer/sf_iSam,
+            "b",
+            self.pixel_axis[[0,-1]],
+            np.tile(0,(2,1)),
+            "-.b",
+            self.pixel_axis,
+            iSamResMin/sf_iSam - offset / 4,
+            "g",
+             self.pixel_axis[[0,-1]],
+            np.tile(-offset / 4,(2,1)),
+            "-.g",
+        )
+        axsldiRes[2].set_ylim(axsldiRes[0].get_ylim())
+        
+        axsldiRes[0].annotate(
+            "A) PC"+str(iPC)+" weighted data overlaid on data",
+            xy=(0.2, 0.95),
+            xytext=(0.3, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldiRes[1].annotate(
+            "",
+            xy=(0.54, 0.5),
+            xytext=(0.46, 0.5),
+            xycoords="figure fraction",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axsldiRes[1].annotate(
+            r"$d_i-$",
+            xy=(0.5, 0.5),
+            xytext=(0.5, 0.52),
+            xycoords="figure fraction",
+            textcoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldiRes[1].annotate(
+            r"$(pc_i \times d_i)$",
+            xy=(0.5, 0.5),
+            xytext=(0.5, 0.46),
+            xycoords="figure fraction",
+            textcoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axsldiRes[2].annotate(
+            "B) PC"+str(iPC)+" residual",
+            xy=(0.2, 0.95),
+            xytext=(0.75, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        if not self.fig_Show_Values: 
+            for iax in range(len(axsldiRes)):
+                axsldiRes[iax].axis("off")
+            
+        if self.fig_Show_Labels:
+            axsldiRes[0].set_ylabel(self.fig_Y_Label)
+            axsldiRes[0].set_xlabel(self.fig_X_Label)
+            axsldiRes[2].set_ylabel('PC Weighted ' + self.fig_Y_Label)
+            axsldiRes[2].set_xlabel(self.fig_X_Label)
+            axsldiRes[4].set_ylabel('Weights / Arbitrary')
+            
+        figsldiRes.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project + 
+                " sldiRes Eqn." + 
+                self.fig_Format, 
+                dpi=self.fig_Resolution
+                )
+#        plt.show()
+        plt.close()
+        
         
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################

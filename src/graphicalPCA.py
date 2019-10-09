@@ -169,6 +169,11 @@ class graphicalPCA:
         pca_full_covariance.figure_DSLT("LTSD")
         ###################             END  LTSDscoreEqn             #######################
 
+        ###################            START sldiscoreEqn             #######################
+        iPC = 1
+        pca_full_covariance.figure_sldi(iPC)
+        ###################             END  sldiscoreEqn             #######################
+
 ### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
         data4plot = np.empty([spectra_full_covariance .shape[0],10])
         dataSq4plot = np.empty([spectra_full_covariance .shape[0],10])
@@ -181,260 +186,12 @@ class graphicalPCA:
             LEigenvectors4plot[iDat,:] = pca_full_covariance .LEigenvector[iDat,0:5]+iDat*40
         for iDat in range(5):
             REigenvectors4plot[:,iDat] = pca_full_covariance .REigenvector[iDat,:]+1-iDat/5
+        PCilims = np.tile(np.array([np.average(pca_full_covariance.LEigenvector[:,iPC-1])-1.96*np.std(pca_full_covariance.LEigenvector[:,iPC-1]),
+                                    np.average(pca_full_covariance.LEigenvector[:,iPC-1]),
+                                    np.average(pca_full_covariance.LEigenvector[:,iPC-1])+1.96*np.std(pca_full_covariance.LEigenvector[:,iPC-1])]),
+                          (2,1))
 
 
-        ###################         START sldiLEigenvectorEqn         #######################
-        # FIGURE for the ith LEigenvector equation si = lixD
-        figsldi, axsldi = plt.subplots(1, 5, figsize=(8, 8))
-        axsldi[0] = plt.subplot2grid((1, 20), (0, 0), colspan=8)
-        axsldi[1] = plt.subplot2grid((1, 20), (0, 8), colspan=1)
-        axsldi[2] = plt.subplot2grid((1, 20), (0, 9), colspan=8)
-        axsldi[3] = plt.subplot2grid((1, 20), (0, 17), colspan=1)
-        axsldi[4] = plt.subplot2grid((1, 20), (0, 18), colspan=2)
-
-        iPC = 1  # the ith PC to plot
-        iSamMin = np.argmin(pca_full_covariance.LEigenvector[:, iPC - 1])
-        iSamMax = np.argmax(pca_full_covariance.LEigenvector[:, iPC - 1])
-        iSamZer = np.argmin(
-            np.abs(pca_full_covariance.LEigenvector[:, iPC - 1])
-        )  # Sam = 43 #the ith sample to plot
-        sf_iSam = np.mean(
-            [
-                sum(pca_full_covariance.X[:, iSamMin] ** 2) ** 0.5,
-                sum(pca_full_covariance.X[:, iSamMax] ** 2) ** 0.5,
-                sum(pca_full_covariance.X[:, iSamZer] ** 2) ** 0.5,
-            ]
-        )  # use samescaling factor to preserve relative intensity
-        offset = np.max(pca_full_covariance.REigenvector[iPC - 1, :]) - np.min(
-            pca_full_covariance.REigenvector[iPC - 1, :]
-        )  # offset for clarity
-        axsldi[0].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.REigenvector[iPC - 1, :] + offset * 1.25,
-            "k",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamMax] / sf_iSam + offset / 4,
-            "r",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamZer] / sf_iSam,
-            "b",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamMin] / sf_iSam - offset / 4,
-            "g",
-        )
-        axsldi[0].legend(("$pc_i$", "$d_{max}$", "$d_0$", "$d_{min}$"))
-        temp = REigenvectors4plot[:, iPC - 1] * pca_full_covariance.X[:, iSamZer]
-        offsetProd = np.max(temp) - np.min(temp)
-        axsldi[2].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            REigenvectors4plot[:, iPC - 1] * pca_full_covariance.X[:, iSamMax] + offsetProd,
-            "r",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            REigenvectors4plot[:, iPC - 1] * pca_full_covariance.X[:, iSamZer],
-            "b",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            REigenvectors4plot[:, iPC - 1] * pca_full_covariance.X[:, iSamMin] - offsetProd,
-            "g",
-        )
-
-        PCilims = np.tile(
-            np.array(
-                [
-                    np.average(pca_full_covariance.LEigenvector[:, iPC - 1])
-                    - 1.96 * np.std(pca_full_covariance.LEigenvector[:, iPC - 1]),
-                    np.average(pca_full_covariance.LEigenvector[:, iPC - 1]),
-                    np.average(pca_full_covariance.LEigenvector[:, iPC - 1])
-                    + 1.96 * np.std(pca_full_covariance.LEigenvector[:, iPC - 1]),
-                ]
-            ),
-            (2, 1),
-        )
-        axsldi[4].plot(
-            [0, 10],
-            PCilims,
-            "k--",
-            5,
-            pca_full_covariance.LEigenvector[iSamMax, iPC - 1],
-            "r.",
-            5,
-            pca_full_covariance.LEigenvector[iSamZer, iPC - 1],
-            "b.",
-            5,
-            pca_full_covariance.LEigenvector[iSamMin, iPC - 1],
-            "g.",
-            markersize=10,
-        )
-        ylimLEV = (
-            np.abs(
-                [
-                    pca_full_covariance.LEigenvector[:, iPC - 1].min(),
-                    pca_full_covariance.LEigenvector[:, iPC - 1].max(),
-                ]
-            ).max()
-            * 1.05
-        )
-        axsldi[4].set_ylim([-ylimLEV, ylimLEV])
-        axsldi[1].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            xycoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axsldi[1].annotate(
-            r"$pc_i \times d_i$",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.52),
-            xycoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axsldi[3].annotate(
-            "$\Sigma _{v=1}^{v=p}$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.52),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axsldi[3].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=18,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axsldi[4].annotate(
-            "$U95CI$",
-            xy=(5, PCilims[0, 2]),
-            xytext=(10, PCilims[0, 2]),
-            xycoords="data",
-            textcoords="data",
-            fontsize=12,
-            horizontalalignment="left",
-        )
-        axsldi[4].annotate(
-            "$\overline{S_{i}}$",
-            xy=(0, 0.9),
-            xytext=(1, 0.49),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="left",
-        )
-        axsldi[4].annotate(
-            "$L95CI$",
-            xy=(5, PCilims[0, 0]),
-            xytext=(10, PCilims[0, 0]),
-            xycoords="data",
-            textcoords="data",
-            fontsize=12,
-            horizontalalignment="left",
-        )
-        for iax in range(5):
-            axsldi[iax].axis("off")
-
-        figsldi.savefig(images_folder / "sldiLEigenvectorEqn.png", dpi=300)
-        plt.close()
-        ###################          END  sldiLEigenvectorEqn         #######################
-
-        ###################          Start  sldiResidual         #######################
-
-        figsldiRes, axsldiRes = plt.subplots(1, 3, figsize=(8, 8))
-        axsldiRes[0] = plt.subplot2grid((1, 17), (0, 0), colspan=8)
-        axsldiRes[1] = plt.subplot2grid((1, 17), (0, 8), colspan=1)
-        axsldiRes[2] = plt.subplot2grid((1, 17), (0, 9), colspan=8)
-
-        iSamResMax = pca_full_covariance.X[:, iSamMax] - np.inner(
-            pca_full_covariance.LEigenvector[iSamMax, iPC - 1],
-            pca_full_covariance.REigenvector[iPC - 1, :],
-        )
-        iSamResZer = pca_full_covariance.X[:, iSamZer] - np.inner(
-            pca_full_covariance.LEigenvector[iSamZer, iPC - 1],
-            pca_full_covariance.REigenvector[iPC - 1, :],
-        )
-        iSamResMin = pca_full_covariance.X[:, iSamMin] - np.inner(
-            pca_full_covariance.LEigenvector[iSamMin, iPC - 1],
-            pca_full_covariance.REigenvector[iPC - 1, :],
-        )
-        offsetRes = np.max(iSamResZer) - np.min(iSamResZer)
-
-        axsldiRes[0].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamMax] / sf_iSam + offset / 4,
-            "r",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamZer] / sf_iSam,
-            "b",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            pca_full_covariance.X[:, iSamMin] / sf_iSam - offset / 4,
-            "g",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.inner(
-                pca_full_covariance.LEigenvector[iSamMax, iPC - 1],
-                pca_full_covariance.REigenvector[iPC - 1, :],
-            )
-            / sf_iSam
-            + offset / 4,
-            "k--",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.inner(
-                pca_full_covariance.LEigenvector[iSamZer, iPC - 1],
-                pca_full_covariance.REigenvector[iPC - 1, :],
-            )
-            / sf_iSam,
-            "k--",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.inner(
-                pca_full_covariance.LEigenvector[iSamMin, iPC - 1],
-                pca_full_covariance.REigenvector[iPC - 1, :],
-            )
-            / sf_iSam
-            - offset / 4,
-            "k--",
-        )
-        axsldiRes[0].legend(("$d_{max}$", "$d_0$", "$d_{min}$", "$pc_i*d_{j}$"))
-
-        axsldiRes[2].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            iSamResMax + offsetRes / 2,
-            "r",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            iSamResZer,
-            "b",
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            iSamResMin - offsetRes / 2,
-            "g",
-        )
-
-        axsldiRes[1].annotate(
-            "",
-            xy=(1, 0.6),
-            xytext=(0, 0.6),
-            xycoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axsldiRes[1].annotate(
-            r"$d_i-(pc_i \times d_i)$",
-            xy=(0.5, 0.5),
-            xytext=(0.5, 0.62),
-            xycoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        for iax in range(3):
-            axsldiRes[iax].axis("off")
-
-        figsldiRes.savefig(images_folder / "sldiResLEigenvectorEqn.png", dpi=300)
-        plt.close()
-
-        iSamResCorr = np.corrcoef(iSamResMin, iSamResZer)[0, 1] ** 2
-        ###################              END sldiResidual            #######################
 
  
         ###################        START lsdiLEigenvectorEqn          #######################
@@ -446,9 +203,9 @@ class graphicalPCA:
         axlsdi[3] = plt.subplot2grid((1, 20), (0, 13), colspan=1)
         axlsdi[4] = plt.subplot2grid((1, 20), (0, 14), colspan=6)
 
-        scsf = (
-            PCilims[0, 2] - PCilims[0, 0]
-        ) / 100  # scale range of LEigenvectors to display beside data
+#        scsf = (
+#            PCilims[0, 2] - PCilims[0, 0]
+#        ) / 100  # scale range of LEigenvectors to display beside data
         iPC = 1
         axlsdi[0].plot(
             np.tile(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 100, (9, 1)),
