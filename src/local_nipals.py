@@ -99,6 +99,7 @@ class nipals:
         self.mConS = np.copy(self.pCon)
         self.optSF = np.empty(self.N_PC)
         self.optSF[:] = np.nan
+        self.Eigenvalue = np.copy(self.optSF)
         
         self.fig_Size = [8,8]
         self.fig_Resolution = 300
@@ -378,6 +379,7 @@ class nipals:
             self.rE[iPC + 1, :] = np.sum(
                 self.r[iPC + 1] ** 2, 1
             )  # calculate residual variance
+            self.Eigenvalue[iPC] = ml**2 #store eigenvalue (square of norm)
             self.prepare_Data()
             
     def prepare_Data(self):
@@ -398,8 +400,8 @@ class nipals:
         self.LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
         self.LEig0lines = np.tile([LEig_spacing],(2,1))
 
-        iLEigenvectors4plot = 1/self.LEigenvector[self.fig_k,:]
-        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]
+        iLEigenvectors4plot = self.LEigenvector[self.fig_k,:]
+        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]/self.Eigenvalue[self.fig_i]**0.5
         iLEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(iLEigenvectors4plot,axis=1))*1)
         self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
         self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
@@ -537,7 +539,7 @@ class nipals:
         
         
         axDSLT[v_Ord[0]].annotate(
-            sub_Fig[v_Ord[0]]+"$D_{-\mu}$",
+            sub_Fig[v_Ord[0]]+") $D_{-\mu}$",
             xy=(txt_Positions[0]),
             xytext=(txt_Positions[0]),
             textcoords="figure fraction",
@@ -555,7 +557,7 @@ class nipals:
             horizontalalignment="center",
         )
         if arrangement == "LTSD": 
-            s_Str = sub_Fig[v_Ord[1]]+") $1/S$"
+            s_Str = sub_Fig[v_Ord[1]]+") $S^\dagger$"
         else:
             s_Str = sub_Fig[v_Ord[1]]+") $S$"
         axDSLT[v_Ord[1]].annotate(
@@ -1137,6 +1139,172 @@ class nipals:
 #        plt.show()
         plt.close()
         
+    def figure_lsdi( self , iPC ):
+        ###################        START lsdiLEigenvectorEqn          #######################
+        # FIGURE for the ith REigenvector equation Li = S^\daggeri*D
+        if iPC is None:
+            iPC = self.fig_i[0]+1 #internal list is python index so need to add 1 for compatibility
+            print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
+        figlsdi, axlsdi = plt.subplots(1, 6, figsize=self.fig_Size)
+        axlsdi[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
+        axlsdi[1] = plt.subplot2grid((1, 21), (0, 1), colspan=6)
+        axlsdi[2] = plt.subplot2grid((1, 21), (0, 7), colspan=1)
+        axlsdi[3] = plt.subplot2grid((1, 21), (0, 8), colspan=6)
+        axlsdi[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
+        axlsdi[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
+        
+        c_Inv_Score = self.LEigenvector[:,iPC-1]/self.Eigenvalue[iPC]**0.5
+#TO DO CHECK HOW EXACTLY INVERSION WORKS IN TERMS OF VECTORS
+        PCilims = np.tile(np.array([np.nanmean(c_Inv_Score)-1.96*np.nanstd(c_Inv_Score),
+                                    0,
+                                    np.nanmean(c_Inv_Score)+1.96*np.nanstd(c_Inv_Score)]),
+                          (2,1))
+
+#            transform=transforms.Affine2D().rotate_deg(90) + axlsdi[0].transData,
+        # TODO need different colour per sample
+#        sf = np.mean(np.max(self.X[:,self.fig_k],axis=0)/c_Inv_Score[self.fig_k])
+        axlsdi[1].plot(
+            self.pixel_axis, 
+            4*self.X[:,self.fig_k]/self.Eigenvalue[iPC]**0.5 + c_Inv_Score[self.fig_k],
+            [self.pixel_axis[0],self.pixel_axis[-1]], 
+            np.tile(c_Inv_Score[self.fig_k],(2,1)),
+            "-."
+            ) 
+        axlsdi[0].scatter(
+            np.tile([0],(np.size(self.fig_k),1)),
+            c_Inv_Score[self.fig_k],
+            c = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                 '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
+        )
+        axlsdi[0].plot(
+            [-1, 1],
+            PCilims,
+            "--k",
+        )
+        axlsdi[0].set_ylim(axlsdi[1].get_ylim()) #align the scores and data offsets
+        axlsdi[0].annotate(
+            "$L95\%CI$",
+            xy=(0.11, 0.35),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="right",
+        )
+        axlsdi[0].annotate(
+            "$0$",
+            xy=(0.11, 0.57),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="right",
+        )
+        axlsdi[0].annotate(
+            "$U95\%CI$",
+            xy=(0.11, 0.78),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="right",
+        )
+
+        axlsdi[0].annotate(
+            "A) $s^\dagger_{k,i}$",
+            xy=(0.12, 0.95),
+            xytext=(0.12, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axlsdi[1].annotate(
+            "B) $d_k$",
+            xy=(0.27, 0.95),
+            xytext=(0.27, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axlsdi[3].plot(c_Inv_Score[self.fig_k] * self.X[:,self.fig_k])
+        axlsdi[3].annotate(
+            r"C) $s^\dagger_{k,i} \times d_k$",
+            xy=(0.52, 0.95),
+            xytext=(0.52, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            alpha = 0.95
+        )
+        axlsdi[5].plot(self.REigenvector[iPC - 1, :])
+        axlsdi[5].annotate(
+            "D) $l_i$",
+            xy=(0.8, 0.5),
+            xytext=(0.8, 0.95),
+            textcoords="figure fraction",
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        axlsdi[2].annotate(
+            r"$s^\dagger_{k,i}\times$d_k",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.52),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axlsdi[2].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axlsdi[4].annotate(
+            "$\Sigma _{j=1}^{j=n}$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.52),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axlsdi[4].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+
+        if not self.fig_Show_Values: 
+            for iax in range(len(axlsdi)):
+                axlsdi[iax].axis("off")
+            
+        if self.fig_Show_Labels:
+            axlsdi[0].set_ylabel('Scores / Arbitrary')
+            axlsdi[1].set_ylabel(self.fig_Y_Label)
+            axlsdi[1].set_xlabel(self.fig_X_Label)
+            axlsdi[3].set_ylabel('PC Weighted ' + self.fig_Y_Label)
+            axlsdi[3].set_xlabel(self.fig_X_Label)
+            axlsdi[5].set_xlabel(self.fig_X_Label)
+            axlsdi[5].set_ylabel('Weights / Arbitrary')
+
+        figlsdi.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project + 
+                " lsdi Eqn." + 
+                self.fig_Format, 
+                dpi=self.fig_Resolution
+                )    
+        plt.close()
+#        plt.show()
+
         
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################
@@ -1152,7 +1320,7 @@ class nipals:
             self.figure_lpniCommonSignal(iPC, pixel_axis)
 
         figlpniS, axlpniS = plt.subplots(
-            1, 6, figsize=(8, 8)
+            1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing in
         for iPC in range(1, nPC):
             iFig = (
@@ -1192,10 +1360,10 @@ class nipals:
                 figlpniS.savefig(images_folder / image_name, dpi=300)
                 plt.close()
                 figlpniS, axlpniS = plt.subplots(
-                    1, 6, figsize=(8, 8)
+                    1, 6, figsize=self.fig_Size
                 )  # Extra columns to match spacing in
 
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=self.fig_Size)
         figsmsf = plt.plot(range(2, np.shape(self.optSF)[0] + 1), self.optSF[1:], ".")
         drp = np.add(np.nonzero((self.optSF[2:] - self.optSF[1:-1]) < 0), 2)
         if np.size(drp) != 0:
@@ -1209,7 +1377,7 @@ class nipals:
 
         ###### Plot positive, negative score and common  signals without any  common signal subtraction ######
         figlpniU, axlpniU = plt.subplots(
-            1, 6, figsize=(8, 8)
+            1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing
         for iFig in range(6):
             axlpniU[iFig] = plt.subplot2grid((1, 6), (0, iFig), colspan=1)
@@ -1249,7 +1417,7 @@ class nipals:
         # and common consitituents
         if ~np.isnan(self.cCon[0, iPC]):
 
-            figlpni, axlpni = plt.subplots(1, 6, figsize=(8, 8))
+            figlpni, axlpni = plt.subplots(1, 6, figsize=self.fig_Size)
             axlpni[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
             axlpni[1] = plt.subplot2grid((1, 21), (0, 1), colspan=6)
             axlpni[2] = plt.subplot2grid((1, 21), (0, 7), colspan=1)

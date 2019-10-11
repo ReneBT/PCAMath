@@ -172,6 +172,7 @@ class graphicalPCA:
         ###################            START sldiscoreEqn             #######################
         iPC = 1
         pca_full_covariance.figure_sldi(iPC)
+        pca_full_covariance.figure_lsdi(iPC)
         ###################             END  sldiscoreEqn             #######################
 
 ### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
@@ -194,98 +195,6 @@ class graphicalPCA:
 
 
  
-        ###################        START lsdiLEigenvectorEqn          #######################
-        # FIGURE for the ith REigenvector equation Li = 1/Si*D
-        figlsdi, axlsdi = plt.subplots(1, 5, figsize=(8, 8))
-        axlsdi[0] = plt.subplot2grid((1, 20), (0, 0), colspan=6)
-        axlsdi[1] = plt.subplot2grid((1, 20), (0, 6), colspan=1)
-        axlsdi[2] = plt.subplot2grid((1, 20), (0, 7), colspan=6)
-        axlsdi[3] = plt.subplot2grid((1, 20), (0, 13), colspan=1)
-        axlsdi[4] = plt.subplot2grid((1, 20), (0, 14), colspan=6)
-
-#        scsf = (
-#            PCilims[0, 2] - PCilims[0, 0]
-#        ) / 100  # scale range of LEigenvectors to display beside data
-        iPC = 1
-        axlsdi[0].plot(
-            np.tile(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 100, (9, 1)),
-            pca_full_covariance.LEigenvector[0:9, iPC - 1],
-            ".",
-        )
-        axlsdi[0].plot(
-            [simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 110, simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 90],
-            np.tile(PCilims[0, 1], (2, 1)),
-            "k",
-        )  # mean score for ith PC
-        # TODO need different colour per sample
-        axlsdi[0].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], 1.8 * data4plot - 250)
-        axlsdi[0].annotate(
-            "$s_i$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 110, 0.9),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0] - 110, 0.9),
-            textcoords="data",
-            fontsize=12,
-            horizontalalignment="left",
-        )
-        axlsdi[2].plot(pca_full_covariance.LEigenvector[0:9, iPC - 1] * pca_full_covariance.X[:, 0:9])
-        axlsdi[2].annotate(
-            r"$s_i \times d_i$",
-            xy=(0.1, 0.9),
-            xytext=(0.6, 0.9),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axlsdi[4].plot(pca_full_covariance.REigenvector[iPC - 1, :])
-        axlsdi[4].annotate(
-            "$L$",
-            xy=(0.1, 0.9),
-            xytext=(0.5, 0.9),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-
-        axlsdi[1].annotate(
-            r"$\cdot$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.52),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axlsdi[1].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axlsdi[3].annotate(
-            "$\Sigma _{o=1}^{o=n}$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.52),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axlsdi[3].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        for iax in range(5):
-            axlsdi[iax].axis("off")
-
-        figlsdi.savefig(images_folder / "lsdiLEigenvectorEqn.png", dpi=300)
-        plt.close()
-        ###################              END lsdiLEigenvectorEqn             #######################
 
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
