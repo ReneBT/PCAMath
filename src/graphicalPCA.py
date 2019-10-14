@@ -26,27 +26,26 @@ class graphicalPCA:
     # comments include references to relevant lines in the pseudocode listed in the paper
 
     def __init__(self):
-        ###################            START Data Simulation              #######################
-        # Read in simulated fatty acid spectra and associated experimental concentration data
+###################            START Data Simulation              #######################
+### Read in simulated fatty acid spectra and associated experimental concentration data
         GC_data = sio.loadmat(
             data_folder / "FA profile data.jrb", struct_as_record=False
         )
-        # Gas Chromatograph (GC) data is from Beattie et al. Lipids 2004 Vol 39 (9):897-906
+# Gas Chromatograph (GC) data is from Beattie et al. Lipids 2004 Vol 39 (9):897-906
         simplified_fatty_acid_spectra = sio.loadmat(data_folder / "FA spectra.mat", struct_as_record=False)
-        # simplified_fatty_acid_spectra are simplified spectra of fatty acid methyl esters built from the properties described in
-        # Beattie et al. Lipids  2004 Vol 39 (5): 407-419
+# simplified_fatty_acid_spectra are simplified spectra of fatty acid methyl esters built from the properties described in
+# Beattie et al. Lipids  2004 Vol 39 (5): 407-419
         wavelength_axis = simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,]
         min_spectral_values = np.tile(
             np.min(simplified_fatty_acid_spectra["simFA"], axis=1), (np.shape(simplified_fatty_acid_spectra["simFA"])[1], 1)
-        )  # /np.mean(simplified_fatty_acid_spectra['simFA'],axis=1)
-
-        # convert the mass base profile provided into a molar profile
+        )  
+# convert the mass base profile provided into a molar profile
         molar_profile = GC_data["ANNSBUTTERmass"] / simplified_fatty_acid_spectra["FAproperties"][0, 0].MolarMass
         molar_profile = 100.0 * molar_profile / sum(molar_profile)
 
-       # Now generate simulated spectra for each sample by multiplying the simulated FA reference
-        # spectra by the Fatty Acid profiles. Note that the simplified_fatty_acid_spectra spectra have a standard intensity in the
-        # carbonyl mode peak (the peak with the highest pixel position)
+# Now generate simulated spectra for each sample by multiplying the simulated FA reference
+# spectra by the Fatty Acid profiles. Note that the simplified_fatty_acid_spectra spectra have a standard intensity in the
+# carbonyl mode peak (the peak with the highest pixel position)
         spectra_full_covariance = np.dot(simplified_fatty_acid_spectra["simFA"], molar_profile)
         min_spectra_full_covariance = np.dot(
             np.transpose(min_spectral_values), molar_profile
@@ -58,7 +57,7 @@ class graphicalPCA:
         plt.savefig(images_folder / "Simulated Data full covariance.png", dpi=300)
         plt.close()
 
-        # Now we calculate PCA, first with the full FA covariance, comparing NIPALS and built in function.
+# Now we calculate PCA, with the full fatty acid covariance, comparing custom NIPALS and built in PCA function.
 
         pca_full_covariance = npls.nipals(
             X_data=spectra_full_covariance,
@@ -153,44 +152,39 @@ class graphicalPCA:
         plt.xlabel("PC Rank")
         plt.close()
 
-        ###################         END  Data Calculations            #######################
+###################         END  Data Calculations            #######################
 
 
-        ###################            START DSLTmainEqn              #######################
-        # FIGURE for the main PCA equation
+###################            START Matrix Equations              #######################
+# Generate FIGURE for the main PCA equation in its possible arrangements
         pca_full_covariance.figure_DSLT("DSLT")
-        ###################             END  DSLTmainEqn              #######################
-
-        ###################            START SLTDscoreEqn             #######################
         pca_full_covariance.figure_DSLT("SLTD")
-        ###################             END  SLTDscoreEqn             #######################
-
-        ###################            START LTSDscoreEqn             #######################
         pca_full_covariance.figure_DSLT("LTSD")
-        ###################             END  LTSDscoreEqn             #######################
+###################             END  Matrix Equations             #######################
 
-        ###################            START sldiscoreEqn             #######################
+###################            START Vector Equations             #######################
         iPC = 1
         pca_full_covariance.figure_sldi(iPC)
         pca_full_covariance.figure_lsdi(iPC)
-        ###################             END  sldiscoreEqn             #######################
+###################             END  Vector Equations             #######################
+
+        ###################            START Algorithm Equations             #######################
+# Function to generate sum of squares figure showing how PCA is initialised
+        pca_full_covariance.figure_DTD()
+        pca_full_covariance.figure_DTDw()
 
 ### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
         data4plot = np.empty([spectra_full_covariance .shape[0],10])
         dataSq4plot = np.empty([spectra_full_covariance .shape[0],10])
         REigenvectors4plot = np.empty([spectra_full_covariance .shape[0],5])
         LEigenvectors4plot = np.empty([10,5])
-        SSQ = np.sum(pca_full_covariance .X**2,1)
         for iDat in range(10):
             data4plot[:,iDat] = pca_full_covariance .X[:,iDat]+iDat*16
             dataSq4plot[:,iDat] = pca_full_covariance .X[:,iDat]**2+iDat*1000
             LEigenvectors4plot[iDat,:] = pca_full_covariance .LEigenvector[iDat,0:5]+iDat*40
         for iDat in range(5):
             REigenvectors4plot[:,iDat] = pca_full_covariance .REigenvector[iDat,:]+1-iDat/5
-        PCilims = np.tile(np.array([np.average(pca_full_covariance.LEigenvector[:,iPC-1])-1.96*np.std(pca_full_covariance.LEigenvector[:,iPC-1]),
-                                    np.average(pca_full_covariance.LEigenvector[:,iPC-1]),
-                                    np.average(pca_full_covariance.LEigenvector[:,iPC-1])+1.96*np.std(pca_full_covariance.LEigenvector[:,iPC-1])]),
-                          (2,1))
+
 
 
 
@@ -215,382 +209,5 @@ class graphicalPCA:
         pca_full_covarianceNMC.figure_lpniCommonSignalScalingFactors(nPC, xview)
         ###################         END lpniCommonSignalScalingFactors           #######################
 
-        ###################                  START DTDscoreEqn                  #######################
-        # FIGURE showing how the inner product of the data forms the sum of squares
-        figDTD, axDTD = plt.subplots(1, 5, figsize=(8, 8))
-        axDTD[0] = plt.subplot2grid((1, 20), (0, 0), colspan=6)
-        axDTD[1] = plt.subplot2grid((1, 20), (0, 6), colspan=1)
-        axDTD[2] = plt.subplot2grid((1, 20), (0, 7), colspan=6)
-        axDTD[3] = plt.subplot2grid((1, 20), (0, 13), colspan=1)
-        axDTD[4] = plt.subplot2grid((1, 20), (0, 14), colspan=6)
 
-        axDTD[0].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], data4plot)
-        axDTD[2].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], dataSq4plot)
-        axDTD[2].annotate(
-            "$d_i*d_i$",
-            xy=(0.1, 0.9),
-            xytext=(0.6, 0.9),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-
-        axDTD[4].plot(SSQ)
-        axDTD[4].annotate(
-            "Sum of Squares",
-            xy=(0.1, 0.9),
-            xytext=(0.5, 0.9),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-
-        axDTD[1].annotate(
-            "$d_i^2$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.55),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDTD[1].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axDTD[3].annotate(
-            "$\Sigma _{o=1}^{o=O}(d_i^2)$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.55),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-        )
-        axDTD[3].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=12,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-
-        for iax in range(5):
-            axDTD[iax].axis("off")
-        figDTD.savefig(images_folder / "DTDscoreEqn.png", dpi=300)
-        plt.close()
-        ###################                  END DTDscoreEqn                  #######################
-
-        ###################                  START D2DwscoreEqn               #######################
-        # FIGURE for the illustration of the NIPALs algorithm, with the aim of iteratively calculating
-        # each PCA to minimise the explantion of the sum of squares
-        figD2Dw, axD2Dw = plt.subplots(3, 5, figsize=(8, 8))
-        axD2Dw[0, 0] = plt.subplot2grid((13, 20), (0, 0), colspan=6, rowspan=6)
-        axD2Dw[0, 1] = plt.subplot2grid((13, 20), (0, 6), colspan=1, rowspan=6)
-        axD2Dw[0, 2] = plt.subplot2grid((13, 20), (0, 7), colspan=6, rowspan=6)
-        axD2Dw[0, 3] = plt.subplot2grid((13, 20), (0, 13), colspan=1, rowspan=6)
-        axD2Dw[0, 4] = plt.subplot2grid((13, 20), (0, 14), colspan=6, rowspan=6)
-        axD2Dw[1, 0] = plt.subplot2grid((13, 20), (7, 0), colspan=7, rowspan=1)
-        axD2Dw[1, 1] = plt.subplot2grid((13, 20), (7, 7), colspan=7, rowspan=1)
-        axD2Dw[1, 2] = plt.subplot2grid((13, 20), (7, 14), colspan=6, rowspan=1)
-        axD2Dw[2, 0] = plt.subplot2grid((13, 20), (8, 0), colspan=6, rowspan=6)
-        axD2Dw[2, 1] = plt.subplot2grid((13, 20), (8, 6), colspan=1, rowspan=6)
-        axD2Dw[2, 2] = plt.subplot2grid((13, 20), (8, 7), colspan=6, rowspan=6)
-        axD2Dw[2, 3] = plt.subplot2grid((13, 20), (8, 13), colspan=1, rowspan=6)
-        axD2Dw[2, 4] = plt.subplot2grid((13, 20), (8, 14), colspan=6, rowspan=6)
-
-        axD2Dw[0, 0].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.r[0])
-        ylims0_0 = np.max(np.abs(axD2Dw[0, 0].get_ylim()))
-        axD2Dw[0, 0].set_ylim(
-            -ylims0_0, ylims0_0
-        )  # tie the y limits so scales directly comparable
-        axD2Dw[0, 0].annotate(
-            "a) $D_{-\mu}=R_0$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 0].get_ylim()[1]),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 0].get_ylim()[1]),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        axD2Dw[0, 1].annotate(
-            "$\widehat{\Sigma(R_0^2)}$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.55),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[0, 1].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-
-        axD2Dw[0, 1].annotate(
-            "$j=0$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.45),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[0, 2].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.pc[1][:, 0], "m")
-        axD2Dw[0, 2].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.pc[0][:, 0])
-        axD2Dw[0, 2].annotate(
-            "b) $\widehat{SS_R}$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 2].get_ylim()[1]),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 2].get_ylim()[1]),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        axD2Dw[0, 3].annotate(
-            "$R_{i-1}/\widehat{SS}$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.55),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[0, 3].annotate(
-            "",
-            xy=(1, 0.5),
-            xytext=(0, 0.5),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axD2Dw[0, 3].annotate(
-            "$i=i+1$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.45),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[0, 3].annotate(
-            "$j=j+1$",
-            xy=(0, 0.5),
-            xytext=(0.5, 0.40),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[0, 4].plot(pca_full_covariance.w[1][0, :], ".m")
-        axD2Dw[0, 4].plot(pca_full_covariance.w[0][0, :] / 10, ".")
-        axD2Dw[0, 4].plot(pca_full_covariance.w[0][1, :], ".c")
-        axD2Dw[0, 4].annotate(
-            "c) $S_i^j$",
-            xy=(8, axD2Dw[0, 4].get_ylim()[1]),
-            xytext=(8, axD2Dw[0, 4].get_ylim()[1]),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        axD2Dw[1, 2].annotate(
-            "",
-            xy=(0.5, 0),
-            xytext=(0.5, 1),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axD2Dw[1, 2].annotate(
-            "$D_{-\mu}/S_i^j$",
-            xy=(0.55, 0.5),
-            xytext=(0.55, 0.55),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            rotation=90,
-        )
-        axD2Dw[2, 4].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.pc[1][:, 1], "m")
-        axD2Dw[2, 4].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.pc[0][:, 1])
-        axD2Dw[2, 4].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.pc[0][:, 2], "c")
-        ylims2_4 = np.max(np.abs(axD2Dw[2, 4].get_ylim()))
-        axD2Dw[2, 4].set_ylim(
-            -ylims2_4, ylims2_4
-        )  # tie the y limits so scales directly comparable
-        axD2Dw[2, 4].annotate(
-            "d) $L_i^{Tj}$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[2, 4].get_ylim()[0]),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[2, 4].get_ylim()[0]),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        axD2Dw[2, 3].annotate(
-            "",
-            xy=(0, 0.5),
-            xytext=(1, 0.5),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-        )
-        axD2Dw[2, 3].annotate(
-            "$|L_i^{jT}-L_i^{(j-1)T}|$",
-            xy=(0.5, 0.55),
-            xytext=(0.5, 0.55),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[2, 2].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.abs(pca_full_covariance.pc[1][:, 1] - pca_full_covariance.pc[1][:, 0]),
-            "m",
-        )
-        axD2Dw[2, 2].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.abs(pca_full_covariance.pc[0][:, 1] - pca_full_covariance.pc[0][:, 0]),
-        )
-        ylims2_2 = np.max(np.abs(axD2Dw[2, 2].get_ylim())) * 1.1
-        axD2Dw[2, 2].plot(
-            simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,],
-            np.abs(pca_full_covariance.pc[0][:, 2] - pca_full_covariance.pc[0][:, 1]),
-            "c",
-        )
-        axD2Dw[2, 2].set_ylim([0 - ylims2_2 * 0.1, ylims2_2])
-        axD2Dw[2, 2].annotate(
-            "e) Iteration Change in $L^T$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], 0 - ylims2_2 * 0.1),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], 0 - ylims2_2 * 0.1),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        axD2Dw[2, 2].annotate(
-            "$\Sigma|L_i^{jT}-L_i^{(j-1)T}|<Tol$ OR $j=max\_j$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][200], ylims2_2 * 0.9),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], ylims2_2 * 0.87),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="center",
-        )
-        axD2Dw[2, 2].annotate(
-            "$True$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0], ylims2_2 * 0.85),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][50], ylims2_2 * 0.79),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-            color="g",
-        )
-        axD2Dw[2, 2].annotate(
-            "$False$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][400], ylims2_2 * 0.99),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][450], ylims2_2 * 0.95),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="right",
-            color="r",
-        )
-        con = ConnectionPatch(
-            xyA=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][100], ylims2_2 * 0.79),
-            xyB=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][-1], ylims0_0 * 0.1),
-            coordsA="data",
-            coordsB="data",
-            axesA=axD2Dw[2, 2],
-            axesB=axD2Dw[2, 0],
-            arrowstyle="->",
-        )
-        axD2Dw[2, 2].add_artist(con)
-        con2 = ConnectionPatch(
-            xyA=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][450], ylims2_2),
-            xyB=(axD2Dw[0, 4].get_xlim()[0], axD2Dw[0, 4].get_ylim()[0]),
-            coordsA="data",
-            coordsB="data",
-            axesA=axD2Dw[2, 2],
-            axesB=axD2Dw[0, 4],
-            arrowstyle="->",
-        )
-        axD2Dw[2, 2].add_artist(con2)
-        axD2Dw[1, 1].annotate(
-            "$R_{i-1}^T*L_i^j}$",
-            xy=(0, 0.5),
-            xytext=(0.7, 1),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="right",
-            rotation=42,
-        )
-        axD2Dw[1, 1].annotate(
-            "$j=j+1$",
-            xy=(0, 0.5),
-            xytext=(0.75, 0.95),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            rotation=42,
-        )
-        axD2Dw[2, 1].annotate(
-            "$R_{i-1}-S_{i}*L_{i}^T$",
-            xy=(0.1, 0.9),
-            xytext=(0.75, 0.82),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            rotation=40,
-        )
-        axD2Dw[2, 0].plot(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,], pca_full_covariance.r[1])
-        axD2Dw[2, 0].set_ylim(
-            -ylims0_0, ylims0_0
-        )  # tie the y limits so scales directly comparable
-        axD2Dw[2, 0].annotate(
-            "f) $R_i$",
-            xy=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 0].get_ylim()[0]),
-            xytext=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][10], axD2Dw[0, 0].get_ylim()[0]),
-            textcoords="data",
-            fontsize=8,
-            horizontalalignment="left",
-        )
-        con3 = ConnectionPatch(
-            xyA=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][450], np.max(pca_full_covariance.r[1] * 2)),
-            xyB=(simplified_fatty_acid_spectra["FAXcal"][[0, 0]][0,][0], 0),
-            coordsA="data",
-            coordsB="data",
-            axesA=axD2Dw[2, 0],
-            axesB=axD2Dw[0, 2],
-            arrowstyle="->",
-        )
-        axD2Dw[2, 0].add_artist(con3)
-        axD2Dw[1, 0].annotate(
-            "$\widehat{\Sigma(R_i^2)}$",
-            xy=(0, 0.5),
-            xytext=(0.75, 0.9),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            rotation=55,
-        )
-        axD2Dw[1, 0].annotate(
-            "$j=0$",
-            xy=(0, 0.5),
-            xytext=(0.85, 0.5),
-            textcoords="axes fraction",
-            fontsize=8,
-            horizontalalignment="center",
-            rotation=55,
-        )
-        for iax in range(5):
-            axD2Dw[0, iax].axis("off")
-            axD2Dw[2, iax].axis("off")
-            if iax < 3:
-                axD2Dw[1, iax].axis("off")
-        figD2Dw.subplots_adjust(wspace=0, hspace=0)
-        figD2Dw.savefig(images_folder / "D2DwscoreEqn.png", dpi=300)
-        plt.close()
-        ###################                  END D2DwscoreEqn                  #######################
         return

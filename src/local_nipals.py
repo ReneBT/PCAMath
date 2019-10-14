@@ -389,6 +389,11 @@ class nipals:
         self.data4plot = data4plot + data_spacing
         self.data0lines = np.tile([data_spacing],(2,1))
         
+        dataSq4plot = self.X[:,self.fig_k]**2
+        dataSq_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(dataSq4plot,axis=0))/2)
+        self.dataSq4plot = dataSq4plot + dataSq_spacing
+        self.dataSq0lines = np.tile([dataSq_spacing],(2,1))
+
         REigenvectors4plot = self.REigenvector[self.fig_i,:].transpose()
         REig_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(REigenvectors4plot,axis=1))*4)
         self.REigenvectors4plot = REigenvectors4plot + REig_spacing
@@ -1578,3 +1583,439 @@ class nipals:
         plt.savefig(images_folder / filename, dpi=300)
         plt.close()
 
+    def figure_DTD(self,):
+ 
+        ###################                  START DTDscoreEqn                  #######################
+        # FIGURE showing how the inner product of the data forms the sum of squares
+        figDTD, axDTD = plt.subplots(1, 5, figsize=self.fig_Size)
+        axDTD[0] = plt.subplot2grid((1, 20), (0, 0), colspan=6)
+        axDTD[1] = plt.subplot2grid((1, 20), (0, 6), colspan=1)
+        axDTD[2] = plt.subplot2grid((1, 20), (0, 7), colspan=6)
+        axDTD[3] = plt.subplot2grid((1, 20), (0, 13), colspan=1)
+        axDTD[4] = plt.subplot2grid((1, 20), (0, 14), colspan=6)
+
+
+        axDTD[0].plot(self.pixel_axis, self.data4plot)
+        axDTD[0].plot(self.pixel_axis[[0,-1]], self.data0lines,"-.")
+        axDTD[2].plot(self.pixel_axis, self.dataSq4plot)
+        axDTD[2].plot(self.pixel_axis[[0,-1]], self.dataSq0lines,"-.")
+        axDTD[4].plot(self.pixel_axis,  np.sum(self.X**2,1))
+
+        axDTD[0].annotate(
+            "$d_{k=1...n}$",
+            xy=(0.1, 0.95),
+            xytext=(0.22, 0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        axDTD[2].annotate(
+            "$d_k*d_k$",
+            xy=(0.1, 0.95),
+            xytext=(0.51, 0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        axDTD[4].annotate(
+            "Sum of Squares",
+            xy=(0.1, 0.9),
+            xytext=(0.8, 0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        axDTD[1].annotate(
+            "$d_k^2$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.55),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDTD[1].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axDTD[3].annotate(
+            "$\Sigma _{k=1}^{k=n}(d_k^2)$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.55),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axDTD[3].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+
+        if not self.fig_Show_Values: 
+            for iax in range(len(axDTD)):
+                axDTD[iax].axis("off")
+            
+        if self.fig_Show_Labels:
+            axDTD[0].set_ylabel(self.fig_Y_Label)
+            axDTD[0].set_xlabel(self.fig_X_Label)
+            axDTD[2].set_ylabel(self.fig_Y_Label + "$^2$")
+            axDTD[2].set_xlabel(self.fig_X_Label)
+            axDTD[4].set_ylabel(self.fig_Y_Label + "$^2$")
+            axDTD[4].set_xlabel(self.fig_X_Label)
+            
+        figDTD.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project +
+                " DTD Eqn."+self.fig_Format, 
+                dpi=self.fig_Resolution
+                )
+#        plt.show()
+        plt.close()
+        ###################                  END DTDscoreEqn                  #######################
+    def figure_DTDw(self,):
+        ###################                  START D2DwscoreEqn               #######################
+        # FIGURE for the illustration of the NIPALs algorithm, with the aim of iteratively calculating
+        # each PCA to minimise the explantion of the sum of squares
+        figD2Dw, axD2Dw = plt.subplots(3, 5, figsize=self.fig_Size)
+        axD2Dw[0, 0] = plt.subplot2grid((13, 20), (0, 0), colspan=6, rowspan=6)
+        axD2Dw[0, 1] = plt.subplot2grid((13, 20), (0, 6), colspan=1, rowspan=6)
+        axD2Dw[0, 2] = plt.subplot2grid((13, 20), (0, 7), colspan=6, rowspan=6)
+        axD2Dw[0, 3] = plt.subplot2grid((13, 20), (0, 13), colspan=1, rowspan=6)
+        axD2Dw[0, 4] = plt.subplot2grid((13, 20), (0, 14), colspan=6, rowspan=6)
+        axD2Dw[1, 0] = plt.subplot2grid((13, 20), (7, 0), colspan=7, rowspan=1)
+        axD2Dw[1, 1] = plt.subplot2grid((13, 20), (7, 7), colspan=7, rowspan=1)
+        axD2Dw[1, 2] = plt.subplot2grid((13, 20), (7, 14), colspan=6, rowspan=1)
+        axD2Dw[2, 0] = plt.subplot2grid((13, 20), (8, 0), colspan=6, rowspan=6)
+        axD2Dw[2, 1] = plt.subplot2grid((13, 20), (8, 6), colspan=1, rowspan=6)
+        axD2Dw[2, 2] = plt.subplot2grid((13, 20), (8, 7), colspan=6, rowspan=6)
+        axD2Dw[2, 3] = plt.subplot2grid((13, 20), (8, 13), colspan=1, rowspan=6)
+        axD2Dw[2, 4] = plt.subplot2grid((13, 20), (8, 14), colspan=6, rowspan=6)
+
+        # data plots
+        # initial data (PC=0)
+        axD2Dw[0, 0].plot(self.pixel_axis, self.r[0])
+        ylims0_0 = np.max(np.abs(axD2Dw[0, 0].get_ylim()))
+        axD2Dw[0, 0].set_ylim(
+            -ylims0_0, ylims0_0
+        )  # tie the y limits so scales directly comparable
+
+        # sum of squares for residual after PCi (for raw data before 1st PCA i=0)
+        axD2Dw[0, 2].plot(self.pixel_axis, self.pc[1][:, 0], "m")
+        axD2Dw[0, 2].plot(self.pixel_axis, self.pc[0][:, 0])
+        
+        # scores in current iteration (j) if current PC(i)
+        axD2Dw[0, 4].plot(self.w[1][0, :], ".m")
+        axD2Dw[0, 4].plot(self.w[0][0, :] / 10, ".")#divide by 10 so on visually comparable scale
+        axD2Dw[0, 4].plot(self.w[0][1, :], ".c")
+        
+        # current iteration j of loading i
+        axD2Dw[2, 4].plot(self.pixel_axis, self.pc[1][:, 1], "m")
+        axD2Dw[2, 4].plot(self.pixel_axis, self.pc[0][:, 1])
+        axD2Dw[2, 4].plot(self.pixel_axis, self.pc[0][:, 2], "c")
+        ylims2_4 = np.max(np.abs(axD2Dw[2, 4].get_ylim()))
+        axD2Dw[2, 4].set_ylim(
+            -ylims2_4, ylims2_4
+        )  # tie the y limits so scales directly comparable
+
+        # Iteration j-1 to j change in loading i
+        axD2Dw[2, 2].plot(
+            self.pixel_axis,
+            np.abs(self.pc[1][:, 1] - self.pc[1][:, 0]),
+            "m",
+        )
+        axD2Dw[2, 2].plot(
+            self.pixel_axis,
+            np.abs(self.pc[0][:, 1] - self.pc[0][:, 0]),
+        )
+        ylims2_2 = np.max(np.abs(axD2Dw[2, 2].get_ylim())) * 1.1
+        axD2Dw[2, 2].plot(
+            self.pixel_axis,
+            np.abs(self.pc[0][:, 2] - self.pc[0][:, 1]),
+            "c",
+        )
+        axD2Dw[2, 2].set_ylim([0 - ylims2_2 * 0.1, ylims2_2])
+        axD2Dw[2, 0].plot(self.pixel_axis, self.r[1])
+        axD2Dw[2, 0].set_ylim(
+            -ylims0_0, ylims0_0
+        )  # tie the y limits so scales directly comparable
+
+        # subplot headers 
+        axD2Dw[0, 0].annotate(
+            "A) $R_{i=0}=D_{-\mu}$",
+            xy=(0.25,0.95),
+            xytext=(0.25,0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axD2Dw[0, 2].annotate(
+            "B) $\widehat{SS_{R_i}}$",
+            xy=(0.5,0.95),
+            xytext=(0.5,0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axD2Dw[0, 4].annotate(
+            "C) $S_i^j$",
+            xy=(0.75,0.95),
+            xytext=(0.8,0.95),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 4].annotate(
+            "D) $L_{i,j}^T$",
+            xy=(0.75,0.1),
+            xytext=(0.8,0.1),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 2].annotate(
+            "E) Iteration Change in $L^T$",
+            xy=(0.5,0.1),
+            xytext=(0.5,0.1),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 0].annotate(
+            "F) $R_i$",
+            xy=(0.25,0.1),
+            xytext=(0.25,0.1),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+        )
+
+        # other information
+        axD2Dw[0, 1].annotate(
+            "$\widehat{\Sigma(R_{i=0}^2)}$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.55),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[0, 1].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+
+        axD2Dw[0, 3].annotate(
+            "$R_{i}/\widehat{SS}$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.55),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[0, 3].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axD2Dw[0, 3].annotate(
+            "$i=i+1$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.45),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[0, 3].annotate(
+            "$j=j+1$",
+            xy=(0, 0.5),
+            xytext=(0.5, 0.40),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[1, 2].annotate(
+            "",
+            xy=(0.5, 0),
+            xytext=(0.5, 2),
+            textcoords="axes fraction",
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axD2Dw[1, 2].annotate(
+            "$R_{i-1}*S_{i,j}^\dagger$",
+            xy=(0.55, 0.5),
+            xytext=(0.57, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=90,
+        )
+        #note need to replace * with \times but I can't get it to work
+        axD2Dw[2, 3].annotate(
+            "",
+            xy=(0, 0.5),
+            xytext=(1, 0.5),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axD2Dw[2, 3].annotate(
+            "$|L_{i,j}-L_{i,j-1}|$",
+            xy=(0.53, 0.55),
+            xytext=(0.53, 0.55),
+            textcoords="axes fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 2].annotate(
+            "$\Sigma|L_i^{jT}-L_i^{(j-1)T}|<Tol$",
+            xy=(0.48,0.375),
+            xytext=(0.48,0.375),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 2].annotate(
+            "OR $j=max\_j$",
+            xy=(0.45,0.36),
+            xytext=(0.48,0.36),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+        )
+        axD2Dw[2, 2].annotate(
+            "$False$",
+            xy=(0.65,0.55),
+            xytext=(0.5,0.4),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            color="r",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axD2Dw[1, 1].annotate(
+            "$R_{i-1}^T*L_{i,j}$",
+            xy=(0.65,0.55),
+            xytext=(0.57,0.47),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+        )
+        axD2Dw[1, 1].annotate(
+            "$j=j+1$",
+            xy=(0.65,0.55),
+            xytext=(0.59,0.45),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+        )
+
+        axD2Dw[2, 2].annotate(
+            "$True$",
+            xy=(0.35,0.25),
+            xytext=(0.44,0.34),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            color="g",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+
+        axD2Dw[2, 1].annotate(
+            "$R_{i-1}-S_{i}*L_{i}^T$",
+            xy=(0.65,0.55),
+            xytext=(0.38,0.27),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+        )
+#        con3 = ConnectionPatch(
+#            xyA=(self.pixel_axis[450], np.max(self.r[1] * 2)),
+#            xyB=(self.pixel_axis[0], 0),
+#            coordsA="data",
+#            coordsB="data",
+#            axesA=axD2Dw[2, 0],
+#            axesB=axD2Dw[0, 2],
+#            arrowstyle="->",
+#        )
+#        axD2Dw[2, 0].add_artist(con3)
+        axD2Dw[1, 0].annotate(
+            "",
+            xy=(0.5,0.53),
+            xytext=(0.3,0.33),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        axD2Dw[1, 0].annotate(
+            "$\widehat{\Sigma(R_i^2)}$",
+            xy=(0.305,0.535),
+            xytext=(0.405,0.435),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+        )
+        axD2Dw[1, 0].annotate(
+            "$j=0$",
+            xy=(0.32,0.52),
+            xytext=(0.42,0.42),
+            xycoords="figure fraction",
+            fontsize=self.fig_Text_Size*0.75,
+            horizontalalignment="center",
+            rotation=45,
+        )
+        if not self.fig_Show_Values: 
+            for iaxr in range(np.shape(axD2Dw)[0]):
+                for iaxc in range(np.shape(axD2Dw)[1]):
+                    axD2Dw[iaxr,iaxc].axis("off")
+            
+        if self.fig_Show_Labels:
+            axD2Dw[0,0].set_ylabel(self.fig_Y_Label)
+            axD2Dw[0,0].set_xlabel(self.fig_X_Label)
+            axD2Dw[0,2].set_ylabel(self.fig_Y_Label + "$^2$")
+            axD2Dw[0,2].set_xlabel(self.fig_X_Label)
+            axD2Dw[0,4].set_ylabel("Score / Arbitrary")
+            axD2Dw[0,4].set_xlabel("Sample Index")
+            axD2Dw[2,0].set_ylabel("Residual "+self.fig_Y_Label)
+            axD2Dw[2,0].set_xlabel(self.fig_X_Label)
+            axD2Dw[2,2].set_ylabel(self.fig_Y_Label + "$^2$")
+            axD2Dw[2,2].set_xlabel(self.fig_X_Label)
+            axD2Dw[2,4].set_ylabel("Weighting / " + self.fig_Y_Label)
+            axD2Dw[2,4].set_xlabel(self.fig_X_Label)
+            
+        figD2Dw.savefig(
+                str(images_folder) + "\\" +
+                self.fig_Project +
+                " DTDw Eqn."+self.fig_Format, 
+                dpi=self.fig_Resolution
+                )
+#        plt.show()
+        plt.close()
+       ###################                  END D2DwscoreEqn                  #######################
