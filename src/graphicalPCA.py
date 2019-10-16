@@ -168,28 +168,13 @@ class graphicalPCA:
         pca_full_covariance.figure_lsdi(iPC)
 ###################             END  Vector Equations             #######################
 
-        ###################            START Algorithm Equations             #######################
+
+###################            START Algorithm Equations             #######################
 # Function to generate sum of squares figure showing how PCA is initialised
         pca_full_covariance.figure_DTD()
         pca_full_covariance.figure_DTDw()
 
 ### NOTE THIS CODE IS CURRENTLY RETAINED TO PREVENT BREAKING DOWNSTREAM FIGURE PLOTS UNTIL ALL ARE CONVERTED TO CLASS FUNCTIONS ####
-        data4plot = np.empty([spectra_full_covariance .shape[0],10])
-        dataSq4plot = np.empty([spectra_full_covariance .shape[0],10])
-        REigenvectors4plot = np.empty([spectra_full_covariance .shape[0],5])
-        LEigenvectors4plot = np.empty([10,5])
-        for iDat in range(10):
-            data4plot[:,iDat] = pca_full_covariance .X[:,iDat]+iDat*16
-            dataSq4plot[:,iDat] = pca_full_covariance .X[:,iDat]**2+iDat*1000
-            LEigenvectors4plot[iDat,:] = pca_full_covariance .LEigenvector[iDat,0:5]+iDat*40
-        for iDat in range(5):
-            REigenvectors4plot[:,iDat] = pca_full_covariance .REigenvector[iDat,:]+1-iDat/5
-
-
-
-
- 
-
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
         # and negative constituents of a PC
@@ -205,9 +190,20 @@ class graphicalPCA:
             min_spectral_values = min_spectra_full_covariance,
         )
         pca_full_covarianceNMC.calc_PCA()
-        xview = range(625, 685)  # zoom in on region to check in detail for changes
-        pca_full_covarianceNMC.figure_lpniCommonSignalScalingFactors(nPC, xview)
         ###################         END lpniCommonSignalScalingFactors           #######################
+###################            START Positive Negative Equations             #######################
+# generate subtraction figures for positive vs negative score weighted sums.
+        pca_full_covarianceNMC.calc_Constituents(nPC)
+        xview = range(625, 685)  # zoom in on region to check in detail for changes
+        iPC = 2 #PC1 is not interesting for common signal (there is none, so have iPC>=2)
+        pca_full_covarianceNMC.figure_lpniLEigenvectorEqn(iPC)
+
+        pca_full_covarianceNMC.figure_lpniCommonSignalScalingFactors(nPC, xview)
+        pca_full_covarianceNMC.figure_lpniCommonSignal(iPC)
+        pca_full_covarianceNMC.figure_lpniCommonSignal(iPC, pca_full_covarianceNMC.optSF[iPC-1]*1.01)#SF 1% larger
+        pca_full_covarianceNMC.figure_lpniCommonSignal(iPC, pca_full_covarianceNMC.optSF[iPC-1]*0.99)#Sf 1% smaller
+        
+###################             END  Positive Negative Equations             #######################
 
 
         return

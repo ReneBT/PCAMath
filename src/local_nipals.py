@@ -1,14 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import ConnectionPatch
-from matplotlib import transforms
-from pathlib import Path
+import os
+#from matplotlib.patches import ConnectionPatch
+#from matplotlib import transforms
+#from pathlib import Path
 
 # This expects to be called inside the jupyter project folder structure.
-from src.file_locations import data_folder,images_folder
+from src.file_locations import images_folder
 
 
 class nipals:
+### class nipals
+# 3 hash comments with no indent are intended to assist navigation in spyder IDE
     # base class for a NIPALs implmentation of PCA intended for training purposes on small datasets as it creates many
     # intermediate attributes not usually retained in efficent code
     # original data must be oriented such that sample spectra are aligned
@@ -27,6 +30,7 @@ class nipals:
         spectral_weights=None,
         min_spectral_values=None,
     ):
+### __init__
         # requires a data matrX_data and optional additional settings
         # X_data      X, main data matrX_data as specified in pseudocode
         # maximum_number_PCs    is max_i, desired maximum number of PCs
@@ -42,7 +46,7 @@ class nipals:
         #            if other types are desired please handle these prior to calling this class
         #            Note that only one centering method and one scaling method will be implmented. If more are present then the
         #            implmented one will be the first in the above list.
-        # pixel_axis    is a vector of values for each pixel in the x-axis or a tuple specifying a fixed interval spacing
+        # self.pixel_axis    is a vector of values for each pixel in the x-axis or a tuple specifying a fixed interval spacing
         #         (2 values for unit spacing, 3 values for non-unit spacing)
         # spectral_weights  is the array of the weights used to combine the simulated reference spectra into the simulated sample spectra
 
@@ -52,11 +56,13 @@ class nipals:
                 X_data = (
                     X_data.transpose() - self.centring
                 ).transpose()  # mean centre data
+                self.mean = 1
             elif "MdnC" in preproc:
                 self.centring = np.median(X_data, 1)  # calculate the mean of the data
                 X_data = (
                     X_data.transpose() - self.centring
                 ).transpose()  # mean centre data
+                self.mean = 2
             else:
                 self.mean = 0
 
@@ -167,6 +173,7 @@ class nipals:
         TxtSz=None,
         Project=None
     ):
+### figure_Settings
         # NOTE that the user is expected to update all settings in one call, otherwise excluded settings will revert to default
         if self.X is None:
                 print('Data must be loaded into object in order to define plot parameters')
@@ -312,19 +319,20 @@ class nipals:
         self.prepare_Data() #update offset data for plotting equations
            
             
-    def calc_PCA(self):
+    def calc_PCA(self):        
+### calc_PCA
         #        print('initialising NIPALS algorithm')
         self.r.append(self.X)  # initialise the residual_i as the raw input data
         self.rE[0, :] = np.sum(
             self.r[0] ** 2, 1
         )  # calculate total variance (initial residual variance)
 
-        for iPC in range(self.N_PC):  # for i = 0,1,... max_i
+        for ixPC in range(self.N_PC):  # for i = 0,1,... max_i
             pc = np.ndarray((self.N_Vars, self.Max_It))
             w = np.ndarray((self.Max_It, self.N_Obs))
             jIt = 0  # iteration counter initialised
             pc[:, jIt] = (
-                np.sum(self.r[iPC] ** 2, 1) ** 0.5
+                np.sum(self.r[ixPC] ** 2, 1) ** 0.5
             )  # pc_i,j = norm of sqrt(sum(residual_i^2))
             pc[:, jIt] = (
                 pc[:, jIt] / sum(pc[:, jIt] ** 2) ** 0.5
@@ -341,11 +349,11 @@ class nipals:
                     #                    print(str(jIt)+' of '+str(self.Max_It)+' iterations')
                     #                    print(str(diff)+' compared to tolerance of ',str(self.Tol))
                     w[jIt, :] = (
-                        self.r[iPC].T @ pc[:, jIt]
+                        self.r[ixPC].T @ pc[:, jIt]
                     )  # calculate LEigenvectors from REigenvectors: w_i,j = outer product( residual_i , pc_i,j )
                     jIt += 1  # reset iteration counter, j, to 0
                     pc[:, jIt] = np.inner(
-                        w[jIt - 1, :].T, self.r[iPC]
+                        w[jIt - 1, :].T, self.r[ixPC]
                     )  # update estimate of REigenvectors using LEigenvectors resulting from previous estimate: pc_i,j = inner product( w'_i,j-1 , residual_i)
                     ml = sum(pc[:, jIt] ** 2) ** 0.5  # norm of REigenvectors
                     pc[:, jIt] = (
@@ -362,28 +370,28 @@ class nipals:
             self.pc.append(
                 pc[:, 0 : jIt - 1]
             )  # truncate iteration vectors to those calculated prior to final iteration
-            self.REigenvector[iPC, :] = pc[
+            self.REigenvector[ixPC, :] = pc[
                 :, jIt
             ]  # store optimised REigenvector: rEV_i = pc_i,j
 
             self.w.append(
                 w[0 : jIt - 1, :]
             )  # truncate iteration vectors to those calculated
-            self.LEigenvector[:, iPC] = (
-                self.r[iPC].T @ pc[:, jIt]
+            self.LEigenvector[:, ixPC] = (
+                self.r[ixPC].T @ pc[:, jIt]
             )  # store LEigenvectors, AKA scores: lEV_i = outer product( residual_i , pc_i,j )
             self.r.append(
-                self.r[iPC]
-                - np.outer(self.LEigenvector[:, iPC].T, self.REigenvector[iPC, :].T).T
+                self.r[ixPC]
+                - np.outer(self.LEigenvector[:, ixPC].T, self.REigenvector[ixPC, :].T).T
             )  # update residual:     residual_i+1 = residual_i - outer product( lEV_i, rEV_i )
-            self.rE[iPC + 1, :] = np.sum(
-                self.r[iPC + 1] ** 2, 1
+            self.rE[ixPC + 1, :] = np.sum(
+                self.r[ixPC + 1] ** 2, 1
             )  # calculate residual variance
-            self.Eigenvalue[iPC] = ml**2 #store eigenvalue (square of norm)
+            self.Eigenvalue[ixPC] = ml**2 #store eigenvalue (square of norm)
             self.prepare_Data()
             
     def prepare_Data(self):
-        
+### prepare_Data
         data4plot = self.X[:,self.fig_k]
         data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
         self.data4plot = data4plot + data_spacing
@@ -411,7 +419,8 @@ class nipals:
         self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
         self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
 
-    def calc_Constituents(self, iPC):
+    def calc_Constituents(self, nPC):
+### calc_Constituents
         # calculate the constituents that comprise the PC, splitting them into 3 parts:
         # Positive score weighted summed spectra - positive contributors to the PC
         # -Negative score weighted summed spectra - negative contributors to the PC
@@ -423,84 +432,95 @@ class nipals:
                 "Warning: using subtracted spectra, such as mean or median centred data, will result in consitutents that are still"
                 + " subtraction spectra - recontructing these to positive signals requires addition of the mean or median"
             )
-        #        print('extracting contributing LEigenvector features')
-        posSc = self.LEigenvector[:, iPC] > 0
-
-        self.nCon[:, iPC] = -np.sum(
-            self.LEigenvector[posSc == False, iPC] * self.X[:, posSc == False], axis=1
-        )
-        self.pCon[:, iPC] = np.sum(
-            self.LEigenvector[posSc, iPC] * self.X[:, posSc], axis=1
-        )
-        self.cCon[:, iPC] = np.inner(
-            np.inner(
-                np.mean([self.nCon[:, iPC], self.pCon[:, iPC]], axis=0),
-                self.REigenvector[range(iPC), :],
-            ),
-            self.REigenvector[range(iPC), :].transpose(),
-        )
-        self.mCon[:, iPC] = np.sum(
-            self.LEigenvector[posSc, iPC] * self.min_spectral_values[:, posSc], axis=1
-        )  # minimum score vector
-
-        tSF = np.ones(11)
-        res = np.ones(11)
-        for X_data in range(
-            0, 9
-        ):  # search across 10x required precision of last minimum
-            tSF[X_data] = (X_data + 1) / 10
-            nConS = (
-                self.nCon[:, iPC] - self.cCon[:, iPC] * tSF[X_data]
-            )  # negative constituent corrected for common signal
-            pConS = (
-                self.pCon[:, iPC] - self.cCon[:, iPC] * tSF[X_data]
-            )  # positive constituent corrected for common signal
-            mConS = self.mCon[:, iPC] * (1 - tSF[X_data])
-            cConS = self.cCon[:, iPC] * (1 - tSF[X_data])
-
-            res[X_data] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
-        res[res < 0] = np.max(
-            res
-        )  # set all negative residuals to max so as to bias towards undersubtraction
-        optSF = tSF[np.nonzero(np.abs(res) == np.min(np.abs(res)))]
-
-        for iPrec in range(2, 10):  # define level of precsision required
-            tSF = np.ones(19)
-            res = np.ones(19)
-            for X_data in range(
-                -9, 10
-            ):  # serach across 10x required precision of last minimum
-                tSF[X_data + 9] = optSF + X_data / 10 ** iPrec
-                nConS = (
-                    self.nCon[:, iPC] - self.cCon[:, iPC] * tSF[X_data + 9]
+        for ixPC in range(nPC):#        print('extracting contributing LEigenvector features')
+            posSc = self.LEigenvector[:, ixPC] > 0
+    
+            self.nCon[:, ixPC] = -np.sum(
+                self.LEigenvector[posSc == False, ixPC] * self.X[:, posSc == False], axis=1
+            )
+            self.pCon[:, ixPC] = np.sum(
+                self.LEigenvector[posSc, ixPC] * self.X[:, posSc], axis=1
+            )
+            self.cCon[:, ixPC] = np.inner(
+                np.inner(
+                    np.mean([self.nCon[:, ixPC], self.pCon[:, ixPC]], axis=0),
+                    self.REigenvector[range(ixPC), :],
+                ),
+                self.REigenvector[range(ixPC), :].transpose(),
+            )
+            self.mCon[:, ixPC] = np.sum(
+                self.LEigenvector[posSc, ixPC] * self.min_spectral_values[:, posSc], axis=1
+            )  # minimum score vector
+            if ixPC>0: #not applicable to PC1
+                tSF = np.ones(11)
+                res = np.ones(11)
+                for X_data in range(
+                    0, 9
+                ):  # search across 10x required precision of last minimum
+                    tSF[X_data] = (X_data + 1) / 10
+                    nConS = (
+                        self.nCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data]
+                    )  # negative constituent corrected for common signal
+                    pConS = (
+                        self.pCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data]
+                    )  # positive constituent corrected for common signal
+                    mConS = self.mCon[:, ixPC] * (1 - tSF[X_data])
+                    cConS = self.cCon[:, ixPC] * (1 - tSF[X_data])
+        
+                    res[X_data] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
+                res[res < 0] = np.max(
+                    res
+                )  # set all negative residuals to max so as to bias towards undersubtraction
+                optSF = tSF[np.nonzero(np.abs(res) == np.min(np.abs(res)))]
+        
+                for iPrec in range(2, 10):  # define level of precsision required
+                    tSF = np.ones(19)
+                    res = np.ones(19)
+                    for X_data in range(
+                        -9, 10
+                    ):  # serach across 10x required precision of last minimum
+                        tSF[X_data + 9] = optSF + X_data / 10 ** iPrec
+                        nConS = (
+                            self.nCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data + 9]
+                        )  # - constituent corrected for common signal
+                        pConS = (
+                            self.pCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data + 9]
+                        )  # + constituent corrected for common signal
+                        cConS = self.cCon[:, ixPC] * (1 - tSF[X_data + 9])
+                        mConS = self.mCon[:, ixPC] * (1 - tSF[X_data + 9])
+        
+                        res[X_data + 9] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
+                    res[res < 0] = np.max(
+                        res
+                    )  # set all negative residuals to max so as to bias towards undersubtraction
+                    optSF = tSF[np.nonzero(np.abs(res) == np.min(np.abs(res)))]
+                self.optSF[ixPC] = optSF[0]
+                self.nConS[:, ixPC] = (
+                    self.nCon[:, ixPC] - self.cCon[:, ixPC] * optSF
                 )  # - constituent corrected for common signal
-                pConS = (
-                    self.pCon[:, iPC] - self.cCon[:, iPC] * tSF[X_data + 9]
+                self.pConS[:, ixPC] = (
+                    self.pCon[:, ixPC] - self.cCon[:, ixPC] * optSF
                 )  # + constituent corrected for common signal
-                cConS = self.cCon[:, iPC] * (1 - tSF[X_data + 9])
-                mConS = self.mCon[:, iPC] * (1 - tSF[X_data + 9])
-
-                res[X_data + 9] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
-            res[res < 0] = np.max(
-                res
-            )  # set all negative residuals to max so as to bias towards undersubtraction
-            optSF = tSF[np.nonzero(np.abs(res) == np.min(np.abs(res)))]
-        self.optSF[iPC] = optSF[0]
-        self.nConS[:, iPC] = (
-            self.nCon[:, iPC] - self.cCon[:, iPC] * optSF
-        )  # - constituent corrected for common signal
-        self.pConS[:, iPC] = (
-            self.pCon[:, iPC] - self.cCon[:, iPC] * optSF
-        )  # + constituent corrected for common signal
-        self.cConS[:, iPC] = self.cCon[:, iPC] * (1 - optSF)
-        self.mConS[:, iPC] = self.mCon[:, iPC] * (1 - optSF)
+                self.cConS[:, ixPC] = self.cCon[:, ixPC] * (1 - optSF)
+                self.mConS[:, ixPC] = self.mCon[:, ixPC] * (1 - optSF)
+            else: #no subtraction in 1st PC 
+                optSF = 0
+                self.optSF[ixPC] = 0
+                self.nConS[:, ixPC] = (
+                    self.nCon[:, ixPC]
+                )  # - constituent corrected for common signal
+                self.pConS[:, ixPC] = (
+                    self.pCon[:, ixPC] 
+                )  # + constituent corrected for common signal
+                self.cConS[:, ixPC] = self.cCon[:, ixPC] * (1 - optSF)
+                self.mConS[:, ixPC] = self.mCon[:, ixPC] * (1 - optSF)
 
         ## need to work out how to handle min_spectral_values
 
         # print('extracted positive and negative LEigenvector features')
                     
     def figure_DSLT(self, arrangement):
-
+### figure_DSLT
         grid_Column = np.array( [8, 2, 8] )
         sub_Fig = [ "A" , "B" , "C" ]
         #        grid_Row = np.array([5, 5, 3])
@@ -768,14 +788,17 @@ class nipals:
         plt.close()
         
     def figure_sldi(self, iPC):
+### figure_sldi
             # plots the vector process for how scores are calculated to compliment the 
     # relevant math equation, rather than directly represent it. 
     # iPC is the PC number, not index so starts at 1 for the first PC
     
     # vector plots differ radically so not simple to create common function
         if iPC is None:
-            iPC = self.fig_i[0]+1 #internal list is python index so need to add 1 for compatibility
+            ixPC = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
+        else:
+            ixPC = iPC-1
         figsldi, axsldi = plt.subplots(1, 5, figsize=self.fig_Size)
         axsldi[0] = plt.subplot2grid((1, 20), (0, 0), colspan=8)
         axsldi[1] = plt.subplot2grid((1, 20), (0, 8), colspan=1)
@@ -783,10 +806,10 @@ class nipals:
         axsldi[3] = plt.subplot2grid((1, 20), (0, 17), colspan=1)
         axsldi[4] = plt.subplot2grid((1, 20), (0, 18), colspan=2)
     
-        iSamMin = np.argmin(self.LEigenvector[:, iPC - 1])
-        iSamMax = np.argmax(self.LEigenvector[:, iPC - 1])
+        iSamMin = np.argmin(self.LEigenvector[:, iPC])
+        iSamMax = np.argmax(self.LEigenvector[:, ixPC])
         iSamZer = np.argmin(
-            np.abs(self.LEigenvector[:, iPC - 1])
+            np.abs(self.LEigenvector[:, ixPC])
         )  # Sam = 43 #the ith sample to plot
         sf_iSam = np.mean(
             [
@@ -795,12 +818,12 @@ class nipals:
                 sum(self.X[:, iSamZer] ** 2) ** 0.5,
             ]
         )  # use samescaling factor to preserve relative intensity
-        offset = np.max(self.REigenvector[iPC - 1, :]) - np.min(
-            self.REigenvector[iPC - 1, :]
+        offset = np.max(self.REigenvector[ixPC, :]) - np.min(
+            self.REigenvector[ixPC, :]
         )  # offset for clarity
         axsldi[0].plot(
             self.pixel_axis,
-            self.REigenvector[iPC - 1, :] + offset * 1.25,
+            self.REigenvector[ixPC, :] + offset * 1.25,
             "k",
             self.pixel_axis,
             self.X[:, iSamMax] / sf_iSam + offset / 4,
@@ -825,23 +848,23 @@ class nipals:
             "-.g",
         )
         axsldi[0].legend(("$pc_i$", "$d_{max}$", "$d_0$", "$d_{min}$"))
-        temp = self.REigenvector[iPC - 1, :] * self.X[:, iSamZer]
+        temp = self.REigenvector[ixPC, :] * self.X[:, iSamZer]
         offsetProd = np.max(temp) - np.min(temp)
         axsldi[2].plot(
             self.pixel_axis,
-            self.REigenvector[iPC - 1, :] * self.X[:, iSamMax] + offsetProd,
+            self.REigenvector[ixPC, :] * self.X[:, iSamMax] + offsetProd,
             "r",
             self.pixel_axis[[0,-1]],
             np.tile(offsetProd,(2,1)),
             "-.r",
             self.pixel_axis,
-            self.REigenvector[iPC - 1, :] * self.X[:, iSamZer],
+            self.REigenvector[ixPC, :] * self.X[:, iSamZer],
             "b",
             self.pixel_axis[[0,-1]],
             np.tile(0,(2,1)),
             "-.b",
             self.pixel_axis,
-            self.REigenvector[iPC - 1, :] * self.X[:, iSamMin] - offsetProd,
+            self.REigenvector[ixPC, :] * self.X[:, iSamMin] - offsetProd,
             "g",
             self.pixel_axis[[0,-1]],
             np.tile(-offsetProd,(2,1)),
@@ -851,11 +874,11 @@ class nipals:
         PCilims = np.tile(
             np.array(
                 [
-                    np.average(self.LEigenvector[:, iPC - 1])
-                    - 1.96 * np.std(self.LEigenvector[:, iPC - 1]),
-                    np.average(self.LEigenvector[:, iPC - 1]),
-                    np.average(self.LEigenvector[:, iPC - 1])
-                    + 1.96 * np.std(self.LEigenvector[:, iPC - 1]),
+                    np.average(self.LEigenvector[:, ixPC])
+                    - 1.96 * np.std(self.LEigenvector[:, ixPC]),
+                    np.average(self.LEigenvector[:, ixPC]),
+                    np.average(self.LEigenvector[:, ixPC])
+                    + 1.96 * np.std(self.LEigenvector[:, ixPC]),
                 ]
             ),
             (2, 1),
@@ -865,21 +888,21 @@ class nipals:
             PCilims,
             "k--",
             5,
-            self.LEigenvector[iSamMax, iPC - 1],
+            self.LEigenvector[iSamMax, ixPC],
             "r.",
             5,
-            self.LEigenvector[iSamZer, iPC - 1],
+            self.LEigenvector[iSamZer, ixPC],
             "b.",
             5,
-            self.LEigenvector[iSamMin, iPC - 1],
+            self.LEigenvector[iSamMin, ixPC],
             "g.",
             markersize=10,
         )
         ylimLEV = (
             np.abs(
                 [
-                    self.LEigenvector[:, iPC - 1].min(),
-                    self.LEigenvector[:, iPC - 1].max(),
+                    self.LEigenvector[:, ixPC].min(),
+                    self.LEigenvector[:, ixPC].max(),
                 ]
             ).max()
             * 1.05
@@ -999,16 +1022,16 @@ class nipals:
         axsldiRes[2] = plt.subplot2grid((1, 17), (0, 9), colspan=8)
 
         iSamResMax = self.X[:, iSamMax] - np.inner(
-            self.LEigenvector[iSamMax, iPC - 1],
-            self.REigenvector[iPC - 1, :],
+            self.LEigenvector[iSamMax, ixPC],
+            self.REigenvector[ixPC, :],
         )
         iSamResZer = self.X[:, iSamZer] - np.inner(
-            self.LEigenvector[iSamZer, iPC - 1],
-            self.REigenvector[iPC - 1, :],
+            self.LEigenvector[iSamZer, ixPC],
+            self.REigenvector[ixPC, :],
         )
         iSamResMin = self.X[:, iSamMin] - np.inner(
-            self.LEigenvector[iSamMin, iPC - 1],
-            self.REigenvector[iPC - 1, :],
+            self.LEigenvector[iSamMin, ixPC],
+            self.REigenvector[ixPC, :],
         )
 #        offsetRes = np.max(iSamResZer) - np.min(iSamResZer)
 
@@ -1024,8 +1047,8 @@ class nipals:
             "g",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamMax, iPC - 1],
-                self.REigenvector[iPC - 1, :],
+                self.LEigenvector[iSamMax, ixPC],
+                self.REigenvector[ixPC, :],
             )
             / sf_iSam
             + offset / 4,
@@ -1041,21 +1064,21 @@ class nipals:
             "-.g",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamZer, iPC - 1],
-                self.REigenvector[iPC - 1, :],
+                self.LEigenvector[iSamZer, ixPC],
+                self.REigenvector[ixPC, :],
             )
             / sf_iSam,
             "k--",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamMin, iPC - 1],
-                self.REigenvector[iPC - 1, :],
+                self.LEigenvector[iSamMin, ixPC],
+                self.REigenvector[ixPC, :],
             )
             / sf_iSam
             - offset / 4,
             "k--",
         )
-        axsldiRes[0].legend(("$d_{max}$", "$d_0$", "$d_{min}$", "$pc_i*d_{j}$"))
+        axsldiRes[0].legend(("$d_{max}$", "$d_0$", "$d_{min}$", r"$pc_i\times d_{j}$"))
 
         axsldiRes[2].plot(
             self.pixel_axis,
@@ -1145,11 +1168,14 @@ class nipals:
         plt.close()
         
     def figure_lsdi( self , iPC ):
+### figure_lsdi
         ###################        START lsdiLEigenvectorEqn          #######################
         # FIGURE for the ith REigenvector equation Li = S^\daggeri*D
         if iPC is None:
-            iPC = self.fig_i[0]+1 #internal list is python index so need to add 1 for compatibility
+            ixPC = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
+        else:
+            ixPC = iPC-1
         figlsdi, axlsdi = plt.subplots(1, 6, figsize=self.fig_Size)
         axlsdi[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
         axlsdi[1] = plt.subplot2grid((1, 21), (0, 1), colspan=6)
@@ -1158,7 +1184,7 @@ class nipals:
         axlsdi[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
         axlsdi[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
         
-        c_Inv_Score = self.LEigenvector[:,iPC-1]/self.Eigenvalue[iPC]**0.5
+        c_Inv_Score = self.LEigenvector[:,ixPC]/self.Eigenvalue[iPC]**0.5
 #TO DO CHECK HOW EXACTLY INVERSION WORKS IN TERMS OF VECTORS
         PCilims = np.tile(np.array([np.nanmean(c_Inv_Score)-1.96*np.nanstd(c_Inv_Score),
                                     0,
@@ -1190,6 +1216,7 @@ class nipals:
         axlsdi[0].annotate(
             "$L95\%CI$",
             xy=(0.11, 0.35),
+            xytext=(0.11, 0.34),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
@@ -1198,6 +1225,7 @@ class nipals:
         axlsdi[0].annotate(
             "$0$",
             xy=(0.11, 0.57),
+            xytext=(0.11, 0.56),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
@@ -1206,6 +1234,7 @@ class nipals:
         axlsdi[0].annotate(
             "$U95\%CI$",
             xy=(0.11, 0.78),
+            xytext=(0.11, 0.78),
             textcoords="figure fraction",
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
@@ -1241,7 +1270,7 @@ class nipals:
             horizontalalignment="center",
             alpha = 0.95
         )
-        axlsdi[5].plot(self.REigenvector[iPC - 1, :])
+        axlsdi[5].plot(self.REigenvector[ixPC, :])
         axlsdi[5].annotate(
             "D) $l_i$",
             xy=(0.8, 0.5),
@@ -1253,9 +1282,9 @@ class nipals:
         )
 
         axlsdi[2].annotate(
-            r"$s^\dagger_{k,i}\times$d_k",
+            r"$s^\dagger_{k,i} \times d_k$",
             xy=(0, 0.5),
-            xytext=(0.5, 0.52),
+            xytext=(0.52, 0.52),
             textcoords="axes fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
@@ -1312,44 +1341,38 @@ class nipals:
 
         
     def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
+### figure_lpniCommonSignalScalingFactors
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
         # and negative constituents of a PC
-
-        pixel_axis = self.pixel_axis
-
-        for iPC in range(1, nPC):
-            # generate subtraction figures for positive vs negative score weighted sums.
-            self.calc_Constituents(iPC)
-            self.figure_lpniLEigenvectorEqn(iPC, pixel_axis)
-            self.figure_lpniCommonSignal(iPC, pixel_axis)
-
+        if xview is None:
+            xview = [0,np.length(self.pixel_axis)]
         figlpniS, axlpniS = plt.subplots(
             1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing in
-        for iPC in range(1, nPC):
+        for ixPC in range(1, nPC):
             iFig = (
-                iPC % 6 - 1
+                (ixPC % 6) - 1
             )  # modulo - determine where within block the current PC is
             if iFig == -1:
                 iFig = 5  # if no remainder then it is the last in the cycle
             axlpniS[iFig] = plt.subplot2grid((1, 6), (0, iFig), colspan=1)
             axlpniS[iFig].plot(self.pixel_axis[[xview[0], xview[-0]]], [0, 0], "--")
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.nConS[xview, iPC], "b", linewidth=1
+                self.pixel_axis[xview], self.nConS[xview, ixPC], "b", linewidth=1
             )
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.pConS[xview, iPC], "y", linewidth=1
+                self.pixel_axis[xview], self.pConS[xview, ixPC], "y", linewidth=1
             )
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.cConS[xview, iPC], "g", linewidth=0.5
-            )  # *smsf[iPC]
+                self.pixel_axis[xview], self.cConS[xview, ixPC], "g", linewidth=0.5
+            )
             txtpos = [
                 np.mean(axlpniS[iFig].get_xlim()),
                 axlpniS[iFig].get_ylim()[1] * 0.9,
             ]
             axlpniS[iFig].annotate(
-                "PC " + str(iPC + 1),
+                "PC " + str(ixPC+1),
                 xy=(txtpos),
                 xytext=(txtpos),
                 textcoords="data",
@@ -1358,44 +1381,51 @@ class nipals:
             )
 
             if iFig == 5:
-                for iax in range(np.shape(axlpniS)[0]):
-                    axlpniS[iax].axis("off")
+                if not self.fig_Show_Values: 
+                    for iax in range(len(axlpniS)):
+                        axlpniS[iax].axis("off")
+#                        axlpniU[iax].axis("off")
+                if self.fig_Show_Labels:
+                    axlpniS[iax].set_ylabel("Weighted " + self.fig_Y_Label)
+#                    axlpniU[iax].set_ylabel("Weighted " + self.fig_Y_Label)
+                    for iax in range(len(axlpniS)):
+                        axlpniS[iax].set_xlabel(self.fig_X_Label)
+#                        axlpniU[iax].set_xlabel(self.fig_X_Label)
 
-                image_name = f"lpniSubLEigenvectorEqn_{str(iPC - 4)}_{str(iPC + 1)}.png"
-                figlpniS.savefig(images_folder / image_name, dpi=300)
+                image_name = f" lpni common corrected PC{str(ixPC - 4)} to {str(ixPC + 1)}."
+                full_path = os.path.join(images_folder, self.fig_Project +
+                                        image_name + self.fig_Format)
+                figlpniS.savefig( full_path, 
+                                 dpi=self.fig_Resolution)
+                
+#                plt.show()
                 plt.close()
+                #create new figures
                 figlpniS, axlpniS = plt.subplots(
                     1, 6, figsize=self.fig_Size
                 )  # Extra columns to match spacing in
 
-        plt.figure(figsize=self.fig_Size)
-        figsmsf = plt.plot(range(2, np.shape(self.optSF)[0] + 1), self.optSF[1:], ".")
-        drp = np.add(np.nonzero((self.optSF[2:] - self.optSF[1:-1]) < 0), 2)
-        if np.size(drp) != 0:
-            plt.plot(drp + 1, self.optSF[drp][0], "or")
-            plt.plot([2, nPC], [self.optSF[drp][0], self.optSF[drp][0]], "--")
-        plt.savefig(images_folder / "lpniCommonSignalScalingFactors.png", dpi=300)
         plt.close()
-
-        # copy scalingAdjustment.py into its own cell after running this main cell in Jupyter then you
-        # can manually adjust the scaling factors for each PC to determine what is the most appropriate method
-
-        ###### Plot positive, negative score and common  signals without any  common signal subtraction ######
         figlpniU, axlpniU = plt.subplots(
             1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing
-        for iFig in range(6):
+        for ixPC in range(1, nPC):
+            iFig = (
+                (ixPC % 6) - 1
+            )  # modulo - determine where within block the current PC is
+            if iFig == -1:
+                iFig = 5  # if no remainder then it is the last in the cycle
             axlpniU[iFig] = plt.subplot2grid((1, 6), (0, iFig), colspan=1)
             axlpniU[iFig].plot(self.pixel_axis[[xview[0], xview[-0]]], [0, 0], "--")
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.nCon[xview, iFig + 1], "b", linewidth=1
+                self.pixel_axis[xview], self.nCon[xview, ixPC], "b", linewidth=1
             )
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.pCon[xview, iFig + 1], "y", linewidth=1
+                self.pixel_axis[xview], self.pCon[xview, ixPC], "y", linewidth=1
             )
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.cCon[xview, iFig + 1], "g", linewidth=0.5
-            )  # *smsf[iPC]
+                self.pixel_axis[xview], self.cCon[xview, ixPC], "g", linewidth=0.5
+            ) 
             axlpniU[iFig].annotate(
                 "PC " + str(iFig + 2),
                 xy=(
@@ -1410,17 +1440,59 @@ class nipals:
                 fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
             )
-        for iax in range(np.shape(axlpniU)[0]):
-            axlpniU[iax].axis("off")
-        figlpniU.savefig(images_folder / "lpniUnSubLEigenvectorEqn_2_4.png", dpi=300)
+            if iFig == 5:
+                if not self.fig_Show_Values: 
+                    for iax in range(len(axlpniU)):
+                        axlpniU[iax].axis("off")
+                if self.fig_Show_Labels:
+                    axlpniU[iax].set_ylabel("Weighted " + self.fig_Y_Label)
+                    for iax in range(len(axlpniU)):
+                        axlpniU[iax].set_xlabel(self.fig_X_Label)
+                image_name = f" lpni common raw PC{str(ixPC - 4)} to {str(ixPC + 1)}."
+                full_path = os.path.join(images_folder, self.fig_Project +
+                                        image_name + self.fig_Format)
+                figlpniU.savefig(full_path, 
+                                 dpi=self.fig_Resolution)
+#                plt.show()
+    
+                plt.close()
+                figlpniU, axlpniU = plt.subplots(
+                    1, 6, figsize=self.fig_Size
+                )
+           
         plt.close()
+        plt.figure(figsize=self.fig_Size)
+        plt.plot(range(2, np.shape(self.optSF)[0] + 1), self.optSF[1:], ".")
+        drp = np.add(np.nonzero((self.optSF[2:] - self.optSF[1:-1]) < 0), 2)
+        if np.size(drp) != 0:
+            plt.plot(drp + 1, self.optSF[drp][0], "or")
+            plt.plot([2, nPC], [self.optSF[drp][0], self.optSF[drp][0]], "--")
+        image_name = f" lpni common signal scaling factors PC2 to {str(nPC)}."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        plt.savefig(full_path, 
+                         dpi=self.fig_Resolution)
+#        plt.show()
+        plt.close()
+
+        # copy scalingAdjustment.py into its own cell after running this main cell in Jupyter then you
+        # can manually adjust the scaling factors for each PC to determine what is the most appropriate method
+
+        ###### Plot positive, negative score and common  signals without any  common signal subtraction ######
         ###################         END lpniCommonSignalScalingFactors           #######################
 
-    def figure_lpniLEigenvectorEqn(self, iPC, pixel_axis):
-        # this class function prints out tiff images comparing the score magnitude weighted summed spectra for
+    def figure_lpniLEigenvectorEqn(self, iPC):
+### figure_lpniLEigenvectorEqn
+        # this class function prints out images comparing the score magnitude weighted summed spectra for
         # positive and negative score spectra. The class must have already calculated the positive, negative
         # and common consitituents
-        if ~np.isnan(self.cCon[0, iPC]):
+        if iPC is None:
+            ixPC = self.fig_i[1] #internal list is python index so need to add 1 for compatibility
+            print('No PC specified for vector figure (figure_dsli). Defaulting to second PC used in matrix figures')
+        else:
+            ixPC = iPC-1
+
+        if ~np.isnan(self.cCon[0, ixPC]):
 
             figlpni, axlpni = plt.subplots(1, 6, figsize=self.fig_Size)
             axlpni[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
@@ -1429,46 +1501,102 @@ class nipals:
             axlpni[3] = plt.subplot2grid((1, 21), (0, 8), colspan=6)
             axlpni[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
             axlpni[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
-            posSc = self.LEigenvector[:, iPC] > 0  # skip PC1 as not subtraction
-
+            posSc = self.LEigenvector[:, ixPC] > 0  # skip PC1 as not subtraction
+            if any(np.sum(posSc==True)==[0,np.shape(posSc)[0]]) or any(np.sum(posSc==False)==[0,np.shape(posSc)[0]]): 
+                iPC = 2
+                ixPC = iPC-1
+                print('Data not mean centered, so assuming input data is all positive then no positive/negative split will be observed. Defaulting to PC2')
+                #this switches PC to 2 if PC1 has no combination of positive or negative
             axlpni[0].plot([-10, 10], np.tile(0, (2, 1)), "k")
-            axlpni[0].plot(np.tile(0, sum(posSc)), self.LEigenvector[posSc, iPC], ".y")
+            axlpni[0].plot(np.tile(0, sum(posSc)), self.LEigenvector[posSc, ixPC], ".y")
             axlpni[0].plot(
                 np.tile(0, sum(posSc == False)),
-                self.LEigenvector[posSc == False, iPC],
+                self.LEigenvector[posSc == False, ixPC],
                 ".b",
             )
 
-            axlpni[1].plot(pixel_axis, self.X[:, posSc], "y")
-            axlpni[1].plot(pixel_axis, self.X[:, posSc == False], "--b", lw=0.1)
+            axlpni[1].plot(self.pixel_axis, self.X[:, posSc], "y")
+            axlpni[1].plot(self.pixel_axis, self.X[:, posSc == False], "--b", lw=0.1)
+
+            axlpni[3].plot(self.pixel_axis, self.nCon[:, ixPC], "b")
+            axlpni[3].plot(self.pixel_axis, self.pCon[:, ixPC], "y")
+
+            pnCon = self.pCon[:, ixPC] - self.nCon[:, ixPC]
+            pnCon = pnCon / np.sum(pnCon ** 2) ** 0.5 # unit vector
+            axlpni[5].plot(self.REigenvector[ixPC, :], "m")
+            axlpni[5].plot(pnCon, "c")
+            axlpni[5].plot(self.REigenvector[ixPC, :] - pnCon, "--k")
+
+            # subplot headers
+            axlpni[0].annotate(
+                "A) $s^\dagger_{k,i}$",
+                xy=(0.12, 0.95),
+                xytext=(0.12, 0.95),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
             axlpni[1].annotate(
-                "$s_i$",
-                xy=(0.1, 0.9),
-                xytext=(pixel_axis[0] - 110, 0.9),
-                textcoords="data",
-                fontsize=self.fig_Text_Size*1.5,
-                horizontalalignment="left",
+                "B) $d_k$",
+                xy=(0.27, 0.95),
+                xytext=(0.27, 0.95),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+            )
+            axlpni[3].annotate(
+                r"C) $|s\pm^\dagger_{k,i}| \times d_k$",
+                xy=(0.52, 0.95),
+                xytext=(0.52, 0.95),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                alpha = 0.95
+            )
+            axlpni[5].annotate(
+                "D) $l_i$",
+                xy=(0.8, 0.5),
+                xytext=(0.8, 0.95),
+                textcoords="figure fraction",
+                xycoords="figure fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
             )
 
-            axlpni[3].plot(pixel_axis, self.nCon[:, iPC], "b")
-            axlpni[3].plot(pixel_axis, self.pCon[:, iPC], "y")
-
-            pnCon = self.pCon[:, iPC] - self.nCon[:, iPC]
-            pnCon = pnCon / np.sum(pnCon ** 2) ** 0.5
-
+            # other annotation
+            axlpni[1].annotate(
+                "$s_{k,i}>0$",
+                xy=(0.37, 0.8),
+                xytext=(0.40, 0.85),
+                xycoords="axes fraction",
+                textcoords="axes fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                color="y",
+            )
+            axlpni[1].annotate(
+                "$s_{k,i}<0$",
+                xy=(0.35, 0.78),
+                xytext=(0.40, 0.82),
+                xycoords="axes fraction",
+                textcoords="axes fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                color="b",
+            )
             axlpni[3].annotate(
-                "$s_i*d_i$",
+                r"$s_i\times d_i$",
                 xy=(0.1, 0.9),
                 xytext=(0.6, 0.9),
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
-            axlpni[5].plot(self.REigenvector[iPC, :], "m")
-            axlpni[5].plot(pnCon, "c")
-            axlpni[5].plot(self.REigenvector[iPC, :] - pnCon, "--k")
 
-            ylim = np.max(pnCon)
+#            ylim = np.max(pnCon)
             axlpni[5].annotate(
                 "$L$",
                 xy=(0.1, 0.9),
@@ -1500,7 +1628,7 @@ class nipals:
                 color="k",
             )
             totdiff = "{:.0f}".format(
-                np.log10(np.mean(np.abs(self.REigenvector[iPC, :] - pnCon)))
+                np.log10(np.mean(np.abs(self.REigenvector[ixPC, :] - pnCon)))
             )
             axlpni[5].annotate(
                 "$\Delta_{L,p-n}=10^{" + totdiff + "}$",
@@ -1514,7 +1642,7 @@ class nipals:
             )
 
             axlpni[2].annotate(
-                "$\Sigma(|s_i^+|*d_i^+)$",
+                r"$\Sigma(|s_i^+|\times d_i^+)$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.55),
                 textcoords="axes fraction",
@@ -1522,7 +1650,7 @@ class nipals:
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
-                "$\Sigma(|s_i^-|*d_i^-)$",
+                r"$\Sigma(|s_i^-|\times d_i^-)$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.42),
                 textcoords="axes fraction",
@@ -1556,35 +1684,75 @@ class nipals:
                 arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
             )
 
-            for iax in range(np.shape(axlpni)[0]):
-                axlpni[iax].axis("off")
-            filename = f"lpniLEigenvectorEqn_{str(iPC + 1)}.png"
-            figlpni.savefig(images_folder / filename, dpi=300)
+            if not self.fig_Show_Values: 
+                for iax in range(len(axlpni)):
+                    axlpni[iax].axis("off")
+
+            if self.fig_Show_Labels:
+                axlpni[0].set_xlabel(self.fig_X_Label)
+                
+            figlpni.savefig(
+                    str(images_folder) + "\\" +
+                    self.fig_Project +
+                    f"  positive negative contributions PC_{str(iPC)}."
+                    +self.fig_Format, 
+                    dpi=self.fig_Resolution
+                    )
             plt.close()
+            
         else:
             print(
                 "Common, Positive and Negative Consituents must be calculated first using calcCons"
             )
 
-    def figure_lpniCommonSignal(self, iPC, pixel_axis):
-        # this class function prints out tiff images comparing the score magnitude weighted summed spectra for
+    def figure_lpniCommonSignal(self, iPC, SF = None):
+### figure_lpniCommonSignal
+# iPC allows control of which PC is plotted
+# SF allows control of the scaling factor tested. Leaving no SF will default to the value calculated by calc_Constituents
+        
+        # this class function prints out images comparing the score magnitude weighted summed spectra for
         # positive and negative score spectra corrected for the common consitituents, compared with the common
         # consituents itself and the scaled global minimum
+        if iPC is None:
+            iPC = 2
+            print('No PC defined for lpniCommonSignal. Defaulting to PC2')
+        ixPC = iPC-1
 
-        plt.plot(pixel_axis, self.nConS[:, iPC], "b")
-        plt.plot(pixel_axis, self.pConS[:, iPC], "y")
-        plt.plot(pixel_axis, self.cConS[:, iPC], "g")
-        plt.plot(pixel_axis, self.min_spectral_values, "c")
-        plt.title("PC" + str(iPC) + " Scale Factor:" + str(self.optSF[iPC]))
+        if SF is None:
+            SF = self.optSF[ixPC]
+            plt.plot(self.pixel_axis, self.nConS[:, ixPC], "b")
+            plt.plot(self.pixel_axis, self.pConS[:, ixPC], "y")
+            plt.plot(self.pixel_axis, self.cConS[:, ixPC], "g")
+            plt.plot(self.pixel_axis, self.min_spectral_values, "c")
+        else:
+            plt.plot(self.pixel_axis, self.nCon[:, ixPC] - self.cCon[:, ixPC]*SF, "b")
+            plt.plot(self.pixel_axis, self.pCon[:, ixPC] - self.cCon[:, ixPC]*SF, "y")
+            plt.plot(self.pixel_axis, self.cCon[:, ixPC] * (1-SF), "g")
+            plt.plot(self.pixel_axis, self.min_spectral_values, "c")
+
+        image_name = " Common Signal Subtraction PC" + str(iPC) + " Scale Factor " + str(SF)
+        plt.title(image_name)
         plt.legend(
             ("-ve Constituent", "+ve Constituent", "Common Signal", "Global Minimum")
         )
-        filename = f"lpniDeterminingCommonSignalScalingFactorsPC_{str(iPC + 1)}.png"
-        plt.savefig(images_folder / filename, dpi=300)
+            
+        if not self.fig_Show_Values: 
+            plt.gca().axis("off")
+
+        if self.fig_Show_Labels:
+            plt.gca().set_xlabel(self.fig_Y_Label)
+            plt.gca().set_xlabel(self.fig_X_Label)
+
+        image_name = image_name.replace(".","_") + "."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        plt.savefig(full_path, 
+                         dpi=self.fig_Resolution)
+            
         plt.close()
 
     def figure_DTD(self,):
- 
+###  figure_DTD
         ###################                  START DTDscoreEqn                  #######################
         # FIGURE showing how the inner product of the data forms the sum of squares
         figDTD, axDTD = plt.subplots(1, 5, figsize=self.fig_Size)
@@ -1611,7 +1779,7 @@ class nipals:
         )
 
         axDTD[2].annotate(
-            "$d_k*d_k$",
+            r"$d_k\times d_k$",
             xy=(0.1, 0.95),
             xytext=(0.51, 0.95),
             xycoords="figure fraction",
@@ -1685,6 +1853,7 @@ class nipals:
         plt.close()
         ###################                  END DTDscoreEqn                  #######################
     def figure_DTDw(self,):
+### figure_DTDw
         ###################                  START D2DwscoreEqn               #######################
         # FIGURE for the illustration of the NIPALs algorithm, with the aim of iteratively calculating
         # each PCA to minimise the explantion of the sum of squares
@@ -1862,7 +2031,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 2].annotate(
-            "$R_{i-1}*S_{i,j}^\dagger$",
+            r"$R_{i-1}\times S_{i,j}^\dagger$",
             xy=(0.55, 0.5),
             xytext=(0.57, 0.5),
             textcoords="axes fraction",
@@ -1870,7 +2039,6 @@ class nipals:
             horizontalalignment="center",
             rotation=90,
         )
-        #note need to replace * with \times but I can't get it to work
         axD2Dw[2, 3].annotate(
             "",
             xy=(0, 0.5),
@@ -1915,7 +2083,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 1].annotate(
-            "$R_{i-1}^T*L_{i,j}$",
+            r"$R_{i-1}^T\times L_{i,j}$",
             xy=(0.65,0.55),
             xytext=(0.57,0.47),
             xycoords="figure fraction",
@@ -1945,7 +2113,7 @@ class nipals:
         )
 
         axD2Dw[2, 1].annotate(
-            "$R_{i-1}-S_{i}*L_{i}^T$",
+            r"$R_{i-1}-S_{i}\times L_{i}^T$",
             xy=(0.65,0.55),
             xytext=(0.38,0.27),
             xycoords="figure fraction",
@@ -1953,16 +2121,7 @@ class nipals:
             horizontalalignment="center",
             rotation=45,
         )
-#        con3 = ConnectionPatch(
-#            xyA=(self.pixel_axis[450], np.max(self.r[1] * 2)),
-#            xyB=(self.pixel_axis[0], 0),
-#            coordsA="data",
-#            coordsB="data",
-#            axesA=axD2Dw[2, 0],
-#            axesB=axD2Dw[0, 2],
-#            arrowstyle="->",
-#        )
-#        axD2Dw[2, 0].add_artist(con3)
+
         axD2Dw[1, 0].annotate(
             "",
             xy=(0.5,0.53),
