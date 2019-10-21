@@ -805,12 +805,11 @@ class nipals:
             axDSLT[v_Ord[4]].set_ylabel('Weights / Arbitrary')
             axDSLT[v_Ord[4]].set_xlabel(self.fig_X_Label)
             
-        figDSLT.savefig(
-                str(images_folder) + "\\" +
-                self.fig_Project + " "+ 
-                arrangement +" Eqn."+self.fig_Format, 
-                dpi=self.fig_Resolution
-                )
+        image_name = " " + arrangement + " Eqn."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        figDSLT.savefig(full_path, 
+                         dpi=self.fig_Resolution)
 #        plt.show()
         plt.close()
         
@@ -1184,13 +1183,11 @@ class nipals:
             axsldiRes[2].set_xlabel(self.fig_X_Label)
             axsldiRes[4].set_ylabel('Weights / Arbitrary')
             
-        figsldiRes.savefig(
-                str(images_folder) + "\\" +
-                self.fig_Project + 
-                " sldiRes Eqn." + 
-                self.fig_Format, 
-                dpi=self.fig_Resolution
-                )
+        image_name = " sldi Residual Eqn."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        figsldiRes.savefig(full_path, 
+                         dpi=self.fig_Resolution)
 #        plt.show()
         plt.close()
         
@@ -1356,13 +1353,11 @@ class nipals:
             axlsdi[5].set_xlabel(self.fig_X_Label)
             axlsdi[5].set_ylabel('Weights / Arbitrary')
 
-        figlsdi.savefig(
-                str(images_folder) + "\\" +
-                self.fig_Project + 
-                " lsdi Eqn." + 
-                self.fig_Format, 
-                dpi=self.fig_Resolution
-                )    
+        image_name = " lsdi Eqn."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        figlsdi.savefig(full_path, 
+                         dpi=self.fig_Resolution)
         plt.close()
 #        plt.show()
 
@@ -1718,13 +1713,11 @@ class nipals:
             if self.fig_Show_Labels:
                 axlpni[0].set_xlabel(self.fig_X_Label)
                 
-            figlpni.savefig(
-                    str(images_folder) + "\\" +
-                    self.fig_Project +
-                    f"  positive negative contributions PC_{str(iPC)}."
-                    +self.fig_Format, 
-                    dpi=self.fig_Resolution
-                    )
+            image_name = f"  positive negative contributions PC_{str(iPC)}."
+            full_path = os.path.join(images_folder, self.fig_Project +
+                                    image_name + self.fig_Format)
+            figlpni.savefig(full_path, 
+                             dpi=self.fig_Resolution)
             plt.close()
             
         else:
@@ -1750,12 +1743,12 @@ class nipals:
             plt.plot(self.pixel_axis, self.nConS[:, ixPC], "b")
             plt.plot(self.pixel_axis, self.pConS[:, ixPC], "y")
             plt.plot(self.pixel_axis, self.cConS[:, ixPC], "g")
-            plt.plot(self.pixel_axis, self.mConS[:, ixPC], "c")
+            plt.plot(self.pixel_axis, self.mConS[:, ixPC], "--c", linewidth=0.5)
         else:
             plt.plot(self.pixel_axis, self.nCon[:, ixPC] - self.cCon[:, ixPC]*SF, "b")
             plt.plot(self.pixel_axis, self.pCon[:, ixPC] - self.cCon[:, ixPC]*SF, "y")
             plt.plot(self.pixel_axis, self.cCon[:, ixPC] * (1-SF), "g")
-            plt.plot(self.pixel_axis, self.mCon[:, ixPC] * (1-SF), "c")
+            plt.plot(self.pixel_axis, self.mCon[:, ixPC] * (1-SF), "--c", linewidth=0.5)
 
         image_name = " Common Signal Subtraction PC" + str(iPC) + " Scale Factor " + str(SF)
         plt.title(image_name)
@@ -1869,13 +1862,13 @@ class nipals:
             axDTD[2].set_xlabel(self.fig_X_Label)
             axDTD[4].set_ylabel(self.fig_Y_Label + "$^2$")
             axDTD[4].set_xlabel(self.fig_X_Label)
-            
-        figDTD.savefig(
-                str(images_folder) + "\\" +
-                self.fig_Project +
-                " DTD Eqn."+self.fig_Format, 
-                dpi=self.fig_Resolution
-                )
+
+        image_name = " DTD Eqn."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        figDTD.savefig(full_path, 
+                         dpi=self.fig_Resolution)
+        
 #        plt.show()
         plt.close()
         ###################                  END DTDscoreEqn                  #######################
@@ -2197,12 +2190,11 @@ class nipals:
             axD2Dw[2,4].set_ylabel("Weighting / " + self.fig_Y_Label)
             axD2Dw[2,4].set_xlabel(self.fig_X_Label)
             
-        figD2Dw.savefig(
-                str(images_folder) + "\\" +
-                self.fig_Project +
-                " DTDw Eqn."+self.fig_Format, 
-                dpi=self.fig_Resolution
-                )
+        image_name = " DTDw Eqn."
+        full_path = os.path.join(images_folder, self.fig_Project +
+                                image_name + self.fig_Format)
+        figD2Dw.savefig(full_path, 
+                         dpi=self.fig_Resolution)
 #        plt.show()
         plt.close()
        ###################                  END D2DwscoreEqn                  #######################
