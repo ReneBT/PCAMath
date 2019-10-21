@@ -2,15 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 #from matplotlib.patches import ConnectionPatch
-#from matplotlib import transforms
+from matplotlib import transforms
 #from pathlib import Path
 
 # This expects to be called inside the jupyter project folder structure.
 from src.file_locations import images_folder
 
 
-class nipals:
 ### class nipals
+class nipals:
 # 3 hash comments with no indent are intended to assist navigation in spyder IDE
     # base class for a NIPALs implmentation of PCA intended for training purposes on small datasets as it creates many
     # intermediate attributes not usually retained in efficent code
@@ -19,6 +19,7 @@ class nipals:
 
     # comments include references to relevant lines in the pseudocode listed in the paper
 
+### __init__
     def __init__(
         self,
         X_data,
@@ -30,7 +31,6 @@ class nipals:
         spectral_weights=None,
         min_spectral_values=None,
     ):
-### __init__
         # requires a data matrX_data and optional additional settings
         # X_data      X, main data matrX_data as specified in pseudocode
         # maximum_number_PCs    is max_i, desired maximum number of PCs
@@ -107,7 +107,7 @@ class nipals:
         self.optSF[:] = np.nan
         self.Eigenvalue = np.copy(self.optSF)
         
-        self.fig_Size = [8,8]
+        self.fig_Size = [8,5]
         self.fig_Resolution = 300
         self.fig_Format = 'png'
         self.fig_k = range( 0 , self.N_Obs , np.ceil(self.N_Obs/10).astype(int) )
@@ -159,6 +159,7 @@ class nipals:
 
         return
     
+### figure_Settings
     def figure_Settings( 
         self, 
         size=None, 
@@ -173,7 +174,6 @@ class nipals:
         TxtSz=None,
         Project=None
     ):
-### figure_Settings
         # NOTE that the user is expected to update all settings in one call, otherwise excluded settings will revert to default
         if self.X is None:
                 print('Data must be loaded into object in order to define plot parameters')
@@ -319,8 +319,8 @@ class nipals:
         self.prepare_Data() #update offset data for plotting equations
            
             
-    def calc_PCA(self):        
 ### calc_PCA
+    def calc_PCA(self):        
         #        print('initialising NIPALS algorithm')
         self.r.append(self.X)  # initialise the residual_i as the raw input data
         self.rE[0, :] = np.sum(
@@ -390,8 +390,8 @@ class nipals:
             self.Eigenvalue[ixPC] = ml**2 #store eigenvalue (square of norm)
             self.prepare_Data()
             
-    def prepare_Data(self):
 ### prepare_Data
+    def prepare_Data(self):
         data4plot = self.X[:,self.fig_k]
         data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
         self.data4plot = data4plot + data_spacing
@@ -419,8 +419,8 @@ class nipals:
         self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
         self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
 
-    def calc_Constituents(self, nPC):
 ### calc_Constituents
+    def calc_Constituents(self, nPC):
         # calculate the constituents that comprise the PC, splitting them into 3 parts:
         # Positive score weighted summed spectra - positive contributors to the PC
         # -Negative score weighted summed spectra - negative contributors to the PC
@@ -519,52 +519,74 @@ class nipals:
 
         # print('extracted positive and negative LEigenvector features')
                     
-    def figure_DSLT(self, arrangement):
 ### figure_DSLT
-        grid_Column = np.array( [8, 2, 8] )
-        sub_Fig = [ "A" , "B" , "C" ]
-        #        grid_Row = np.array([5, 5, 3])
-        if arrangement == "DSLT":
-            v_Ord = np.array([0,1,2]) #Variable axis order for equation plot
+    def figure_DSLT(self, arrangement):
+        grid_Column = np.array( [8, 1, 4, 1, 8] )
+        sub_Fig = [ "A" , "", "B" , "" , "C" ]
+        s_Str = ") $S$" # default name for score matrix
+        Lstr = r"$L{^\top}$" #default name for loading matrix
+        v_Ord = np.array([0,1,2,3,4]) #Variable axis order for equation plot
+       #        grid_Row = np.array([5, 5, 3])
+        if arrangement == "DSLT":#column data (convention in maths)
             #                   D           =           S           .           LT
-            txt_Positions = [[0.25, 0.95],[0.43, 0.5],[0.52, 0.95],[0.51, 0.5],[0.8, 0.95]]
-        elif arrangement == "SLTD": 
-            v_Ord = np.array([1,0,2])
-            txt_Positions = [[0.8, 0.95],[0.2, 0.5],[.1, 0.95],[0.51, 0.5],[0.4, 0.95]]
-        elif arrangement == "LTSD": 
-            v_Ord = np.array([2,1,0])
+            txt_Positions = [[0.25, 0.95],[0.43, 0.5],[0.52, 0.95],[0.51, 0.5],[0.75, 0.95]]
+            matrix_Dims = [ "nxp" , "", "nxd" , "" , "dxp" ]
+        elif arrangement == "SDL": # scores for row data matrix
+            v_Ord = np.array([2,1,0,3,4])
+            txt_Positions = [[0.4, 0.95],[0.2, 0.5],[.15, 0.95],[0.51, 0.5],[0.75, 0.95]]
+            matrix_Dims = [ "nxd" , "", "nxp" , "" , "pxd" ]
+            Lstr = r"$L$"
+        elif arrangement == "LTSiD": # loadings for row data matrix
+            v_Ord = np.array([4,1,2,3,0])
             #                   D           =           S           .           LT
-            txt_Positions = [[0.8, 0.95],[0.43, 0.5],[0.52, 0.95],[0.55, 0.5],[0.25, 0.95]]
+            txt_Positions = [[0.75, 0.95],[0.43, 0.5],[0.5, 0.95],[0.55, 0.5],[0.25, 0.95]]
+            matrix_Dims = [ "dxp" , "", "dxn" , "" , "nxp" ]
+            s_Str = ") $S^\dagger$" #overwrite S amtrix name to indicate pseudo-inverse
         else:
-            print(str(arrangement)+" is not a valid option. Use DSLT, SLTD or LTSD") 
+            print(str(arrangement)+" is not a valid option. Use DSLT, SDL or LTSiD") 
         #    return
-        
-        columns_ordered = [0, grid_Column[v_Ord[0]],np.sum(grid_Column[v_Ord[:-1]])]
+        v_Ix = np.argsort(v_Ord) #index of sorted variable order for reverse lookup
+        columns_ordered = [0, grid_Column[v_Ix[:1]][0],np.sum(grid_Column[v_Ix[:2]]),np.sum(grid_Column[v_Ix[:3]]),np.sum(grid_Column[v_Ix[:4]])]
         #determine correct column starting positions
-        figDSLT, axDSLT = plt.subplots(1, 3,figsize=self.fig_Size)
-        axDSLT[v_Ord[0]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[0]]), colspan=8, rowspan=5)
-        axDSLT[v_Ord[1]] = plt.subplot2grid((5, 20), (0, columns_ordered[v_Ord[1]]), colspan=2, rowspan=5)
-        axDSLT[v_Ord[2]] = plt.subplot2grid((5, 20), (1, columns_ordered[v_Ord[2]]), colspan=8, rowspan=3)
+        figDSLT, axDSLT = plt.subplots(1, 5,figsize=self.fig_Size)
+        axDSLT[v_Ord[0]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[0]]), colspan=8, rowspan=6)
+        axDSLT[v_Ord[1]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[1]]), colspan=1, rowspan=6)
+        axDSLT[v_Ord[2]] = plt.subplot2grid((6, 22), (1, columns_ordered[v_Ord[2]]), colspan=4, rowspan=4)
+        axDSLT[v_Ord[3]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[3]]), colspan=1, rowspan=6)
+        axDSLT[v_Ord[4]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[4]]), colspan=8, rowspan=6)
         
-          
         axDSLT[v_Ord[0]].plot(self.pixel_axis, self.data4plot)
         axDSLT[v_Ord[0]].plot(self.pixel_axis[[0,-1]],self.data0lines)
-        if arrangement == "LTSD": 
-            axDSLT[v_Ord[1]].plot(self.iLEigenvectors4plot.transpose(), ".")
-            axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.iLEig0lines, "-.")
+
+        if arrangement == "LTSiD":
+            axDSLT[v_Ord[2]].plot(self.iLEigenvectors4plot.transpose(), ".",
+                  transform=transforms.Affine2D().rotate_deg(90) + 
+                  axDSLT[v_Ord[2]].transData)
+            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.iLEig0lines, "-.",
+                  transform=transforms.Affine2D().rotate_deg(90) + 
+                  axDSLT[v_Ord[2]].transData)
         else:
-            axDSLT[v_Ord[1]].plot(self.LEigenvectors4plot.transpose(), ".")
-            axDSLT[v_Ord[1]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
-        axDSLT[v_Ord[2]].plot(self.pixel_axis,self.REigenvectors4plot)
-        axDSLT[v_Ord[2]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.')
+            axDSLT[v_Ord[2]].plot(self.LEigenvectors4plot.transpose(), ".")
+            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
+        
+        if arrangement == "SDL":
+            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.REigenvectors4plot,
+                  transform=transforms.Affine2D().rotate_deg(90) + 
+                  axDSLT[v_Ord[4]].transData)
+            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.',
+                  transform=transforms.Affine2D().rotate_deg(90) + 
+                  axDSLT[v_Ord[4]].transData)
+        else:
+            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.REigenvectors4plot)
+            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.')
         
         for iC in range(np.shape(self.fig_i)[0]):
-            axDSLT[v_Ord[2]].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
-            axDSLT[v_Ord[2]].lines[iC+np.shape(self.fig_i)[0]].set_color(str(0 + iC / 5)) #shade zero lines
+            axDSLT[v_Ord[4]].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
+            axDSLT[v_Ord[4]].lines[iC+np.shape(self.fig_i)[0]].set_color(str(0 + iC / 5)) #shade zero lines
         
         
         axDSLT[v_Ord[0]].annotate(
-            sub_Fig[v_Ord[0]]+") $D_{-\mu}$",
+            sub_Fig[v_Ix[0]]+") $D_{-\mu}$",
             xy=(txt_Positions[0]),
             xytext=(txt_Positions[0]),
             textcoords="figure fraction",
@@ -574,19 +596,15 @@ class nipals:
         )
         axDSLT[v_Ord[1]].annotate(
             "=",
-            xy=(txt_Positions[1]),
-            xytext=(txt_Positions[1]),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
+            xy=(0.5,0.5),
+            xytext=(0.5, 0.5),
+            textcoords="axes fraction",
+            xycoords="axes fraction",
             fontsize=self.fig_Text_Size*1.5,
             horizontalalignment="center",
         )
-        if arrangement == "LTSD": 
-            s_Str = sub_Fig[v_Ord[1]]+") $S^\dagger$"
-        else:
-            s_Str = sub_Fig[v_Ord[1]]+") $S$"
-        axDSLT[v_Ord[1]].annotate(
-            s_Str,
+        axDSLT[v_Ord[2]].annotate(
+            sub_Fig[v_Ix[2]] + s_Str,
             xy=(txt_Positions[2]),
             xytext=(txt_Positions[2]),
             textcoords="figure fraction",
@@ -594,17 +612,24 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
-        axDSLT[v_Ord[2]].annotate(
+        axDSLT[v_Ord[3]].annotate(
             r"$\cdot$",
-            xy=(txt_Positions[3]),
-            xytext=(txt_Positions[3]),
-            textcoords="figure fraction",
-            xycoords="figure fraction",
+            xy=(0,0.5),
+            xytext=(0.5, 0.5),
+            textcoords="axes fraction",
             fontsize=self.fig_Text_Size*3,
             horizontalalignment="center",
         )
-        axDSLT[v_Ord[2]].annotate(
-            sub_Fig[v_Ord[2]]+") "+r"$L{^\top}$",
+#        axD2Dw[0, 1].annotate(
+#            "$\widehat{\Sigma(R_{i=0}^2)}$",
+#            xy=(0, 0.5),
+#            xytext=(0.5, 0.55),
+#            textcoords="axes fraction",
+#            fontsize=self.fig_Text_Size*0.75,
+#            horizontalalignment="center",
+#        )
+        axDSLT[v_Ord[4]].annotate(
+            sub_Fig[v_Ix[4]]+") "+Lstr,
             xy=(txt_Positions[4]),
             xytext=(txt_Positions[4]),
             xycoords="figure fraction",
@@ -612,19 +637,47 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
+        axDSLT[v_Ord[0]].annotate(
+            matrix_Dims[v_Ix[0]],
+            xy=(0.15, 0.12),
+            xytext=(0.5, 0),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )        
+        axDSLT[v_Ord[2]].annotate(
+            matrix_Dims[v_Ix[2]],
+            xy=(0.52, 0.12),
+            xytext=(0.5, 0),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
+        axDSLT[v_Ord[4]].annotate(
+            matrix_Dims[v_Ix[4]],
+            xy=(0.75, 0.12),
+            xytext=(0.5, 0),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            va="center",
+        )
         if arrangement == "DSLT": #only put dimensions on the main plot
             axDSLT[v_Ord[0]].annotate(
-                "$k=1$",
-                xy=(0.08, 0.07),
+                "$o=1$",
+                xy=(0.08, 0.08),
                 xytext=(0.08, 0.2),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
             axDSLT[v_Ord[0]].annotate(
-                "$k=n$",
+                "$o=n$",
                 xy=(0.08, 0.06),
                 xytext=(0.08, 0.06),
                 textcoords="figure fraction",
@@ -633,18 +686,19 @@ class nipals:
                 horizontalalignment="center",
             )
             axDSLT[v_Ord[0]].annotate(
-                "$j=1$",
+                "$v=1$",
                 xy=(0.2, 0.04),
                 xytext=(0.1, 0.04),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
             )
             axDSLT[v_Ord[0]].annotate(
-                "$j=p$",
+                "$v=p$",
                 xy=(0.2, 0.04),
                 xytext=(0.2, 0.04),
                 textcoords="figure fraction",
@@ -653,51 +707,42 @@ class nipals:
                 horizontalalignment="left",
                 va="center",
             )
-            axDSLT[v_Ord[0]].annotate(
-                "$nxp$",
-                xy=(0.15, 0.12),
-                xytext=(0.15, 0.12),
+            axDSLT[v_Ord[2]].annotate(
+                "$o=1$",
+                xy=(0.42, 0.08),
+                xytext=(0.42, 0.2),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="center",
-                va="center",
-            )
-            
-            axDSLT[v_Ord[1]].annotate(
-                "$k=1$",
-                xy=(0.45, 0.07),
-                xytext=(0.45, 0.2),
-                textcoords="figure fraction",
-                xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
-            axDSLT[v_Ord[1]].annotate(
-                "$k=n$",
-                xy=(0.45, 0.06),
-                xytext=(0.45, 0.06),
+            axDSLT[v_Ord[2]].annotate(
+                "$o=n$",
+                xy=(0.42, 0.06),
+                xytext=(0.42, 0.06),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
-            axDSLT[v_Ord[1]].annotate(
+            axDSLT[v_Ord[2]].annotate(
                 "$i=1$",
-                xy=(0.57, 0.04),
-                xytext=(0.47, 0.04),
+                xy=(0.54, 0.04),
+                xytext=(0.44, 0.04),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
             )
-            axDSLT[v_Ord[1]].annotate(
+            axDSLT[v_Ord[2]].annotate(
                 "$i=d$",
-                xy=(0.57, 0.04),
-                xytext=(0.57, 0.04),
+                xy=(0.54, 0.04),
+                xytext=(0.54, 0.04),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
@@ -705,60 +750,42 @@ class nipals:
                 va="center",
             )
             
-            axDSLT[v_Ord[1]].annotate(
-                "$nxd$",
-                xy=(0.52, 0.12),
-                xytext=(0.52, 0.12),
-                textcoords="figure fraction",
-                xycoords="figure fraction",
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="center",
-                va="center",
-            )
-            axDSLT[v_Ord[2]].annotate(
+            axDSLT[v_Ord[4]].annotate(
                 "$i=1$",
-                xy=(0.67, 0.07),
-                xytext=(0.67, 0.2),
+                xy=(0.63, 0.08),
+                xytext=(0.63, 0.2),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
-            axDSLT[v_Ord[2]].annotate(
+            axDSLT[v_Ord[4]].annotate(
                 "$i=d$",
-                xy=(0.67, 0.06),
-                xytext=(0.67, 0.06),
+                xy=(0.63, 0.06),
+                xytext=(0.63, 0.06),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
             )
-            axDSLT[v_Ord[2]].annotate(
-                "$j=1$",
-                xy=(0.82, 0.04),
-                xytext=(0.69, 0.04),
+            axDSLT[v_Ord[4]].annotate(
+                "$v=1$",
+                xy=(0.78, 0.04),
+                xytext=(0.65, 0.04),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
-                arrowprops=dict(facecolor="black", shrink=0.05),
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="center",
-                va="center",
-            )
-            axDSLT[v_Ord[2]].annotate(
-                "$dxp$",
-                xy=(0.75, 0.12),
-                xytext=(0.75, 0.12),
-                textcoords="figure fraction",
-                xycoords="figure fraction",
+                arrowprops=dict(facecolor="black",arrowstyle="->",
+                            connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
             )
-            axDSLT[v_Ord[2]].annotate(
-                "$j=p$",
-                xy=(0.83, 0.04),
-                xytext=(0.83, 0.04),
+            axDSLT[v_Ord[4]].annotate(
+                "$v=p$",
+                xy=(0.79, 0.04),
+                xytext=(0.79, 0.04),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
@@ -773,10 +800,10 @@ class nipals:
         if self.fig_Show_Labels:
             axDSLT[v_Ord[0]].set_ylabel(self.fig_Y_Label)
             axDSLT[v_Ord[0]].set_xlabel(self.fig_X_Label)
-            axDSLT[v_Ord[1]].set_ylabel('Score / Arbitrary')
-            axDSLT[v_Ord[1]].set_xlabel('Sample #')
-            axDSLT[v_Ord[2]].set_ylabel('Weights / Arbitrary')
-            axDSLT[v_Ord[2]].set_xlabel(self.fig_X_Label)
+            axDSLT[v_Ord[2]].set_ylabel('Score / Arbitrary')
+            axDSLT[v_Ord[2]].set_xlabel('Sample #')
+            axDSLT[v_Ord[4]].set_ylabel('Weights / Arbitrary')
+            axDSLT[v_Ord[4]].set_xlabel(self.fig_X_Label)
             
         figDSLT.savefig(
                 str(images_folder) + "\\" +
@@ -787,8 +814,8 @@ class nipals:
 #        plt.show()
         plt.close()
         
-    def figure_sldi(self, iPC):
 ### figure_sldi
+    def figure_sldi(self, iPC):
             # plots the vector process for how scores are calculated to compliment the 
     # relevant math equation, rather than directly represent it. 
     # iPC is the PC number, not index so starts at 1 for the first PC
@@ -1167,8 +1194,8 @@ class nipals:
 #        plt.show()
         plt.close()
         
-    def figure_lsdi( self , iPC ):
 ### figure_lsdi
+    def figure_lsdi( self , iPC ):
         ###################        START lsdiLEigenvectorEqn          #######################
         # FIGURE for the ith REigenvector equation Li = S^\daggeri*D
         if iPC is None:
@@ -1340,8 +1367,8 @@ class nipals:
 #        plt.show()
 
         
-    def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
 ### figure_lpniCommonSignalScalingFactors
+    def figure_lpniCommonSignalScalingFactors(self, nPC, xview):
         ###################       START lpniCommonSignalScalingFactors       #######################
         # FIGURE of the scaling factor calculated for subtracting the common signal from the positive
         # and negative constituents of a PC
@@ -1465,8 +1492,8 @@ class nipals:
         plt.plot(range(2, np.shape(self.optSF)[0] + 1), self.optSF[1:], ".")
         drp = np.add(np.nonzero((self.optSF[2:] - self.optSF[1:-1]) < 0), 2)
         if np.size(drp) != 0:
-            plt.plot(drp + 1, self.optSF[drp][0], "or")
-            plt.plot([2, nPC], [self.optSF[drp][0], self.optSF[drp][0]], "--")
+            plt.plot(drp[0][0] + 1, self.optSF[drp[0][0]], "or")
+            plt.plot([2, nPC], [self.optSF[drp[0][0]], self.optSF[drp[0][0]]], "--")
         image_name = f" lpni common signal scaling factors PC2 to {str(nPC)}."
         full_path = os.path.join(images_folder, self.fig_Project +
                                 image_name + self.fig_Format)
@@ -1481,8 +1508,8 @@ class nipals:
         ###### Plot positive, negative score and common  signals without any  common signal subtraction ######
         ###################         END lpniCommonSignalScalingFactors           #######################
 
-    def figure_lpniLEigenvectorEqn(self, iPC):
 ### figure_lpniLEigenvectorEqn
+    def figure_lpniLEigenvectorEqn(self, iPC):
         # this class function prints out images comparing the score magnitude weighted summed spectra for
         # positive and negative score spectra. The class must have already calculated the positive, negative
         # and common consitituents
@@ -1705,8 +1732,8 @@ class nipals:
                 "Common, Positive and Negative Consituents must be calculated first using calcCons"
             )
 
-    def figure_lpniCommonSignal(self, iPC, SF = None):
 ### figure_lpniCommonSignal
+    def figure_lpniCommonSignal(self, iPC, SF = None):
 # iPC allows control of which PC is plotted
 # SF allows control of the scaling factor tested. Leaving no SF will default to the value calculated by calc_Constituents
         
@@ -1723,12 +1750,12 @@ class nipals:
             plt.plot(self.pixel_axis, self.nConS[:, ixPC], "b")
             plt.plot(self.pixel_axis, self.pConS[:, ixPC], "y")
             plt.plot(self.pixel_axis, self.cConS[:, ixPC], "g")
-            plt.plot(self.pixel_axis, self.min_spectral_values, "c")
+            plt.plot(self.pixel_axis, self.mConS[:, ixPC], "c")
         else:
             plt.plot(self.pixel_axis, self.nCon[:, ixPC] - self.cCon[:, ixPC]*SF, "b")
             plt.plot(self.pixel_axis, self.pCon[:, ixPC] - self.cCon[:, ixPC]*SF, "y")
             plt.plot(self.pixel_axis, self.cCon[:, ixPC] * (1-SF), "g")
-            plt.plot(self.pixel_axis, self.min_spectral_values, "c")
+            plt.plot(self.pixel_axis, self.mCon[:, ixPC] * (1-SF), "c")
 
         image_name = " Common Signal Subtraction PC" + str(iPC) + " Scale Factor " + str(SF)
         plt.title(image_name)
@@ -1751,8 +1778,8 @@ class nipals:
             
         plt.close()
 
-    def figure_DTD(self,):
 ###  figure_DTD
+    def figure_DTD(self,):
         ###################                  START DTDscoreEqn                  #######################
         # FIGURE showing how the inner product of the data forms the sum of squares
         figDTD, axDTD = plt.subplots(1, 5, figsize=self.fig_Size)
@@ -1852,12 +1879,13 @@ class nipals:
 #        plt.show()
         plt.close()
         ###################                  END DTDscoreEqn                  #######################
-    def figure_DTDw(self,):
 ### figure_DTDw
+    def figure_DTDw(self,):
         ###################                  START D2DwscoreEqn               #######################
         # FIGURE for the illustration of the NIPALs algorithm, with the aim of iteratively calculating
         # each PCA to minimise the explantion of the sum of squares
-        figD2Dw, axD2Dw = plt.subplots(3, 5, figsize=self.fig_Size)
+        figD2Dw, axD2Dw = plt.subplots(3, 5, figsize=[self.fig_Size[0],self.fig_Size[0]])
+        #needs to be square plot
         axD2Dw[0, 0] = plt.subplot2grid((13, 20), (0, 0), colspan=6, rowspan=6)
         axD2Dw[0, 1] = plt.subplot2grid((13, 20), (0, 6), colspan=1, rowspan=6)
         axD2Dw[0, 2] = plt.subplot2grid((13, 20), (0, 7), colspan=6, rowspan=6)

@@ -157,9 +157,10 @@ class graphicalPCA:
 
 ###################            START Matrix Equations              #######################
 # Generate FIGURE for the main PCA equation in its possible arrangements
+        # Row data matrix (spectra displayed as rows by convention
         pca_full_covariance.figure_DSLT("DSLT")
-        pca_full_covariance.figure_DSLT("SLTD")
-        pca_full_covariance.figure_DSLT("LTSD")
+        pca_full_covariance.figure_DSLT("SDL")
+        pca_full_covariance.figure_DSLT("LTSiD")
 ###################             END  Matrix Equations             #######################
 
 ###################            START Vector Equations             #######################
