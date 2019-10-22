@@ -362,7 +362,6 @@ class nipals:
                     itChange = sum(
                         abs(pc[:, jIt] - pc[:, jIt - 1])
                     )  # total difference between iterations: itChange = sum(|pc_i,j - pc_i,j-1|)
-
                 else:
                     break
                 # endfor
@@ -387,7 +386,7 @@ class nipals:
             self.rE[ixPC + 1, :] = np.sum(
                 self.r[ixPC + 1] ** 2, 1
             )  # calculate residual variance
-            self.Eigenvalue[ixPC] = ml**2 #store eigenvalue (square of norm)
+            self.Eigenvalue[ixPC] = ml #store eigenvalue (square of norm)
             self.prepare_Data()
             
 ### prepare_Data
@@ -414,7 +413,7 @@ class nipals:
         self.LEig0lines = np.tile([LEig_spacing],(2,1))
 
         iLEigenvectors4plot = self.LEigenvector[self.fig_k,:]
-        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]/self.Eigenvalue[self.fig_i]**0.5
+        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]/self.Eigenvalue[self.fig_i]
         iLEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(iLEigenvectors4plot,axis=1))*1)
         self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
         self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
@@ -1208,7 +1207,7 @@ class nipals:
         axlsdi[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
         axlsdi[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
         
-        c_Inv_Score = self.LEigenvector[:,ixPC]/self.Eigenvalue[iPC]**0.5
+        c_Inv_Score = self.LEigenvector[:,ixPC]/self.Eigenvalue[iPC]
 #TO DO CHECK HOW EXACTLY INVERSION WORKS IN TERMS OF VECTORS
         PCilims = np.tile(np.array([np.nanmean(c_Inv_Score)-1.96*np.nanstd(c_Inv_Score),
                                     0,
@@ -1220,7 +1219,7 @@ class nipals:
 #        sf = np.mean(np.max(self.X[:,self.fig_k],axis=0)/c_Inv_Score[self.fig_k])
         axlsdi[1].plot(
             self.pixel_axis, 
-            4*self.X[:,self.fig_k]/self.Eigenvalue[iPC]**0.5 + c_Inv_Score[self.fig_k],
+            4*self.X[:,self.fig_k]/self.Eigenvalue[iPC] + c_Inv_Score[self.fig_k],
             [self.pixel_axis[0],self.pixel_axis[-1]], 
             np.tile(c_Inv_Score[self.fig_k],(2,1)),
             "-."
