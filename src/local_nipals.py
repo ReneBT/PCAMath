@@ -517,7 +517,7 @@ class nipals:
         ## need to work out how to handle min_spectral_values
 
         # print('extracted positive and negative LEigenvector features')
-                    
+
 ### figure_DSLT
     def figure_DSLT(self, arrangement):
         grid_Column = np.array( [8, 1, 4, 1, 8] )

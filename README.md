@@ -19,7 +19,11 @@ To install a virtual environment, follow the instructions at https://anbasile.gi
 
 ## Windows: Using Jupyter Notebooks with a virtual environment (using Anaconda)
 
-Open the Anaconda Prompt from the start menu (in the Anaconda folder)
+Open the Anaconda Prompt from the start menu (in the Anaconda folder). Start by updating Anaconda and ensuring that it should work properly under 64-bit windows. There are a couple of issues that can be avoided by upgrading the python/jupyter environment before starting (such as pywin32 version 225 causing errors).
+
+	python -m pip install --upgrade pip
+	pip install --upgrade pywin32==224
+	pip install ipykernel
 
 Run the following commands (you should see "(base)"  prefixing your command prompt:
 
@@ -30,7 +34,6 @@ Run the following commands (you should see "(base)"  prefixing your command prom
 You should now see "(venv_pca) (base)"  prefixing your command prompt:
 
 	pip install -r requirements.txt
-	pip install ipykernel
 	ipython kernel install --user --name=.venv_pca
 
 Now run Jupyter Notebook from the start menu (in the Anaconda folder). In the browser window, navigate to the location to which you downloaded and extracted the PCAMath project folder. Click on the file "PCApaper.ipynb". This will pop up the "PCApaper" Notebook.
