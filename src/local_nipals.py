@@ -54,21 +54,21 @@ class nipals:
             if "MC" in preproc:
                 self.centring = np.mean(X_data, 1)  # calculate the mean of the data
                 X_data = (
-                    X_data.transpose() - self.centring
-                ).transpose()  # mean centre data
+                    X_data.T - self.centring
+                ).T  # mean centre data
                 self.mean = 1
             elif "MdnC" in preproc:
                 self.centring = np.median(X_data, 1)  # calculate the mean of the data
                 X_data = (
-                    X_data.transpose() - self.centring
-                ).transpose()  # mean centre data
+                    X_data.T - self.centring
+                ).T  # mean centre data
                 self.mean = 2
             else:
                 self.mean = 0
 
             if "UV" in preproc:
                 self.scale = X_data.std(1)
-                X_data = (X_data.transpose() / self.scale).transpose()
+                X_data = (X_data.T / self.scale).T
             elif "MinMax" in preproc:
                 self.scale = X_data.max(1) - X_data.min(1)
             elif "MaxAbs" in preproc:
@@ -76,7 +76,7 @@ class nipals:
             else:
                 self.scale = 1
 
-            self.X = X_data
+            self.data = X_data
             self.N_Vars, self.N_Obs = (
                 X_data.shape
             )  # calculate v (N_Vars) and o (N_Obs), the number of variables and observations in the data matrX_data
@@ -94,15 +94,15 @@ class nipals:
         else:
             self.N_PC = min(X_data.shape[0], X_data.shape[1])
 
-        self.pCon = np.empty([self.N_Vars, self.N_PC])
-        self.pCon[:] = np.nan
-        self.nCon = np.copy(self.pCon)
-        self.cCon = np.copy(self.pCon)
-        self.mCon = np.copy(self.pCon)
-        self.pConS = np.copy(self.pCon)
-        self.nConS = np.copy(self.pCon)
-        self.cConS = np.copy(self.pCon)
-        self.mConS = np.copy(self.pCon)
+        self.positive_sum = np.empty([self.N_Vars, self.N_PC])
+        self.positive_sum[:] = np.nan
+        self.negative_sum = np.copy(self.positive_sum)
+        self.orthogonal_sum = np.copy(self.positive_sum)
+        self.global_minimum = np.copy(self.positive_sum)
+        self.positive_sumS = np.copy(self.positive_sum)
+        self.negative_sumS = np.copy(self.positive_sum)
+        self.orthogonal_sumS = np.copy(self.positive_sum)
+        self.global_minimumS = np.copy(self.positive_sum)
         self.optSF = np.empty(self.N_PC)
         self.optSF[:] = np.nan
         self.Eigenvalue = np.copy(self.optSF)
@@ -136,12 +136,15 @@ class nipals:
         else:
             self.pixel_axis = list(range(self.N_Vars))
 
-        self.REigenvector = np.ndarray(
+        self.spectral_loading = np.ndarray(
             (self.N_PC, self.N_Vars)
         )  # initialise array for right eigenvector (loadings/principal components/latent factors for column oriented matrices, note is transposed wrt original data)
-        self.LEigenvector = np.ndarray(
+        self.component_weight = np.ndarray(
             (self.N_Obs, self.N_PC)
         )  # initialise array for left eigenvector (scores for column oriented matrices)
+        self.icomponent_weight = np.copy(
+                self.component_weight.T
+                )
         self.r = (
             []
         )  # initialise list for residuals for each PC (0 will be initial data, so indexing will equal the PC number)
@@ -175,7 +178,7 @@ class nipals:
         Project=None
     ):
         # NOTE that the user is expected to update all settings in one call, otherwise excluded settings will revert to default
-        if self.X is None:
+        if self.data is None:
                 print('Data must be loaded into object in order to define plot parameters')
                 return
 
@@ -184,9 +187,9 @@ class nipals:
                 self.fig_Size = size
             else:
                 print('Size should be a two value vector, reverting to default size of 8 x 8 cm')
-                self.fig_Size = [ 8 , 8 ]
+                self.fig_Size = [ 8 , 5 ]
         else:
-            self.fig_Size = [ 8 , 8 ]
+            self.fig_Size = [ 8 , 5 ]
 
         if res is not None:
             if np.ndim(res) == 1 and np.shape(res)[0] == 1:
@@ -276,7 +279,7 @@ class nipals:
             self.fig_X_Label = ''
 
         if Show_Labels is not None:
-            if Show_Labels and (len(self.Y_Label)>0 or len(self.X_Label)>0):
+            if Show_Labels and (len(self.fig_Y_Label)>0 or len(self.fig_X_Label)>0):
                 self.fig_Show_Labels =  True
             else:
                 self.fig_Show_Labels =  False        
@@ -322,17 +325,17 @@ class nipals:
 ### calc_PCA
     def calc_PCA(self):        
         #        print('initialising NIPALS algorithm')
-        self.r.append(self.X)  # initialise the residual_i as the raw input data
+        self.r.append(self.data)  # initialise the residual_i as the raw input data
         self.rE[0, :] = np.sum(
             self.r[0] ** 2, 1
         )  # calculate total variance (initial residual variance)
 
-        for ixPC in range(self.N_PC):  # for i = 0,1,... max_i
+        for component_array_index in range(self.N_PC):  # for i = 0,1,... max_i
             pc = np.ndarray((self.N_Vars, self.Max_It))
             w = np.ndarray((self.Max_It, self.N_Obs))
             jIt = 0  # iteration counter initialised
             pc[:, jIt] = (
-                np.sum(self.r[ixPC] ** 2, 1) ** 0.5
+                np.sum(self.r[component_array_index] ** 2, 1) ** 0.5
             )  # pc_i,j = norm of sqrt(sum(residual_i^2))
             pc[:, jIt] = (
                 pc[:, jIt] / sum(pc[:, jIt] ** 2) ** 0.5
@@ -349,16 +352,16 @@ class nipals:
                     #                    print(str(jIt)+' of '+str(self.Max_It)+' iterations')
                     #                    print(str(diff)+' compared to tolerance of ',str(self.Tol))
                     w[jIt, :] = (
-                        self.r[ixPC].T @ pc[:, jIt]
-                    )  # calculate LEigenvectors from REigenvectors: w_i,j = outer product( residual_i , pc_i,j )
+                        self.r[component_array_index].T @ pc[:, jIt]
+                    )  # calculate Scores from Loadings: w_i,j = outer product( residual_i , pc_i,j )
                     jIt += 1  # reset iteration counter, j, to 0
                     pc[:, jIt] = np.inner(
-                        w[jIt - 1, :].T, self.r[ixPC]
-                    )  # update estimate of REigenvectors using LEigenvectors resulting from previous estimate: pc_i,j = inner product( w'_i,j-1 , residual_i)
-                    ml = sum(pc[:, jIt] ** 2) ** 0.5  # norm of REigenvectors
+                        w[jIt - 1, :].T, self.r[component_array_index]
+                    )  # update estimate of Loadings using Scores resulting from previous estimate: pc_i,j = inner product( w'_i,j-1 , residual_i)
+                    ml = sum(pc[:, jIt] ** 2) ** 0.5  # norm of Loadings
                     pc[:, jIt] = (
                         pc[:, jIt] / ml
-                    )  # convert REigenvectors to unit vectors:  pc_i,j = pc_i,j/|pc_i,j|
+                    )  # convert Loadings to unit vectors:  pc_i,j = pc_i,j/|pc_i,j|
                     itChange = sum(
                         abs(pc[:, jIt] - pc[:, jIt - 1])
                     )  # total difference between iterations: itChange = sum(|pc_i,j - pc_i,j-1|)
@@ -369,54 +372,57 @@ class nipals:
             self.pc.append(
                 pc[:, 0 : jIt - 1]
             )  # truncate iteration vectors to those calculated prior to final iteration
-            self.REigenvector[ixPC, :] = pc[
+            self.spectral_loading[component_array_index, :] = pc[
                 :, jIt
-            ]  # store optimised REigenvector: rEV_i = pc_i,j
+            ]  # store optimised Loading: rEV_i = pc_i,j
 
             self.w.append(
                 w[0 : jIt - 1, :]
             )  # truncate iteration vectors to those calculated
-            self.LEigenvector[:, ixPC] = (
-                self.r[ixPC].T @ pc[:, jIt]
-            )  # store LEigenvectors, AKA scores: lEV_i = outer product( residual_i , pc_i,j )
+            self.component_weight[:, component_array_index] = (
+                self.r[component_array_index].T @ pc[:, jIt]
+            )  # store Scores, = outer product( residual_i , pc_i,j )
+            self.icomponent_weight[ component_array_index , :] = (
+                self.component_weight[:, component_array_index]/ml
+            )  # store inverse Scores, = scores scaled to norm (U scores in SVD)
             self.r.append(
-                self.r[ixPC]
-                - np.outer(self.LEigenvector[:, ixPC].T, self.REigenvector[ixPC, :].T).T
+                self.r[component_array_index]
+                - np.outer(self.component_weight[:, component_array_index].T, self.spectral_loading[component_array_index, :].T).T
             )  # update residual:     residual_i+1 = residual_i - outer product( lEV_i, rEV_i )
-            self.rE[ixPC + 1, :] = np.sum(
-                self.r[ixPC + 1] ** 2, 1
+            self.rE[component_array_index + 1, :] = np.sum(
+                self.r[component_array_index + 1] ** 2, 1
             )  # calculate residual variance
-            self.Eigenvalue[ixPC] = ml #store eigenvalue (square of norm)
-            self.prepare_Data()
+            self.Eigenvalue[component_array_index] = ml #store eigenvalue (norm)
+        self.prepare_Data()
             
 ### prepare_Data
     def prepare_Data(self):
-        data4plot = self.X[:,self.fig_k]
+        data4plot = self.data[:,self.fig_k]
         data_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(data4plot,axis=0))/2)
         self.data4plot = data4plot + data_spacing
         self.data0lines = np.tile([data_spacing],(2,1))
         
-        dataSq4plot = self.X[:,self.fig_k]**2
+        dataSq4plot = self.data[:,self.fig_k]**2
         dataSq_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(dataSq4plot,axis=0))/2)
         self.dataSq4plot = dataSq4plot + dataSq_spacing
         self.dataSq0lines = np.tile([dataSq_spacing],(2,1))
 
-        REigenvectors4plot = self.REigenvector[self.fig_i,:].transpose()
-        REig_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(REigenvectors4plot,axis=1))*4)
-        self.REigenvectors4plot = REigenvectors4plot + REig_spacing
-        self.REig0lines = np.tile([REig_spacing],(2,1))
+        Loadings4plot = self.spectral_loading[self.fig_i,:].T
+        Loading_spacing = -(np.arange(np.shape(self.fig_i)[0]))*(np.mean(np.max(Loadings4plot,axis=1))*4)
+        self.Loadings4plot = Loadings4plot + Loading_spacing
+        self.Loading0lines = np.tile([Loading_spacing],(2,1))
         
-        LEigenvectors4plot = self.LEigenvector[self.fig_k,:]
-        LEigenvectors4plot = LEigenvectors4plot[:,self.fig_i]
-        LEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(LEigenvectors4plot,axis=1))*1)
-        self.LEigenvectors4plot = (LEigenvectors4plot.transpose() + LEig_spacing).transpose()
-        self.LEig0lines = np.tile([LEig_spacing],(2,1))
+        Scores4plot = self.component_weight[self.fig_k,:]
+        Scores4plot = Scores4plot[:,self.fig_i]
+        Score_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(Scores4plot,axis=1))*1)
+        self.Scores4plot = (Scores4plot.T + Score_spacing).T
+        self.Score0lines = np.tile([Score_spacing],(2,1))
 
-        iLEigenvectors4plot = self.LEigenvector[self.fig_k,:]
-        iLEigenvectors4plot = iLEigenvectors4plot[:,self.fig_i]/self.Eigenvalue[self.fig_i]
-        iLEig_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(iLEigenvectors4plot,axis=1))*1)
-        self.iLEigenvectors4plot = (iLEigenvectors4plot.transpose() + iLEig_spacing).transpose()
-        self.iLEig0lines = np.tile([iLEig_spacing],(2,1))
+        iScores4plot = self.icomponent_weight[:,self.fig_k]
+        iScores4plot = iScores4plot[self.fig_i,:].T
+        iScore_spacing = (np.arange(np.shape(self.fig_k)[0]))*(np.mean(np.max(iScores4plot,axis=1))*1)
+        self.iScores4plot = (iScores4plot.T + iScore_spacing).T
+        self.iScore0lines = np.tile([iScore_spacing],(2,1))
 
 ### calc_Constituents
     def calc_Constituents(self, nPC):
@@ -431,42 +437,49 @@ class nipals:
                 "Warning: using subtracted spectra, such as mean or median centred data, will result in consitutents that are still"
                 + " subtraction spectra - recontructing these to positive signals requires addition of the mean or median"
             )
-        for ixPC in range(nPC):#        print('extracting contributing LEigenvector features')
-            posSc = self.LEigenvector[:, ixPC] > 0
+        for component_array_index in range(nPC):#        print('extracting contributing Score features')
+            posSc = self.component_weight[:, component_array_index] > 0
     
-            self.nCon[:, ixPC] = -np.sum(
-                self.LEigenvector[posSc == False, ixPC] * self.X[:, posSc == False], axis=1
+            self.negative_sum[:, component_array_index] = -np.sum(
+                self.component_weight[posSc == False, component_array_index] * self.data[:, posSc == False], axis=1
             )
-            self.pCon[:, ixPC] = np.sum(
-                self.LEigenvector[posSc, ixPC] * self.X[:, posSc], axis=1
+            self.positive_sum[:, component_array_index] = np.sum(
+                self.component_weight[posSc, component_array_index] * self.data[:, posSc], axis=1
             )
-            self.cCon[:, ixPC] = np.inner(
+            # tried the mean only. The shape is identical but the scaling is different. 
+            # The mean was 46.25458682703735 times larger than the reconstructed version
+            # the ratio of Eigenvalues was 1385.6306160811262
+            # the ratio of singular values was 37.22405963998454
+            # so neither could be used to rescale and not disturb the below version. 
+            # The reconstructed version ensures the scale of the common 
+            # constituent is the same as for the p anc negative_sums
+            self.orthogonal_sum[:, component_array_index] = np.inner(
                 np.inner(
-                    np.mean([self.nCon[:, ixPC], self.pCon[:, ixPC]], axis=0),
-                    self.REigenvector[range(ixPC), :],
+                    np.mean([self.negative_sum[:, component_array_index], self.positive_sum[:, component_array_index]], axis=0),
+                    self.spectral_loading[range(component_array_index), :],
                 ),
-                self.REigenvector[range(ixPC), :].transpose(),
+                self.spectral_loading[range(component_array_index), :].T,
             )
-            self.mCon[:, ixPC] = np.sum(
-                self.LEigenvector[posSc, ixPC] * self.min_spectral_values[:, posSc], axis=1
+            self.global_minimum[:, component_array_index] = np.sum(
+                self.component_weight[posSc, component_array_index] * self.min_spectral_values[:, posSc], axis=1
             )  # minimum score vector
-            if ixPC>0: #not applicable to PC1
+            if component_array_index>0: #not applicable to PC1
                 tSF = np.ones(11)
                 res = np.ones(11)
                 for X_data in range(
                     0, 9
                 ):  # search across 10x required precision of last minimum
                     tSF[X_data] = (X_data + 1) / 10
-                    nConS = (
-                        self.nCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data]
+                    negative_sumS = (
+                        self.negative_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * tSF[X_data]
                     )  # negative constituent corrected for common signal
-                    pConS = (
-                        self.pCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data]
+                    positive_sumS = (
+                        self.positive_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * tSF[X_data]
                     )  # positive constituent corrected for common signal
-                    mConS = self.mCon[:, ixPC] * (1 - tSF[X_data])
-                    cConS = self.cCon[:, ixPC] * (1 - tSF[X_data])
+                    global_minimumS = self.global_minimum[:, component_array_index] * (1 - tSF[X_data])
+                    orthogonal_sumS = self.orthogonal_sum[:, component_array_index] * (1 - tSF[X_data])
         
-                    res[X_data] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
+                    res[X_data] = np.min([negative_sumS - global_minimumS, positive_sumS - global_minimumS]) / np.max(orthogonal_sumS)
                 res[res < 0] = np.max(
                     res
                 )  # set all negative residuals to max so as to bias towards undersubtraction
@@ -479,44 +492,44 @@ class nipals:
                         -9, 10
                     ):  # serach across 10x required precision of last minimum
                         tSF[X_data + 9] = optSF + X_data / 10 ** iPrec
-                        nConS = (
-                            self.nCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data + 9]
+                        negative_sumS = (
+                            self.negative_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * tSF[X_data + 9]
                         )  # - constituent corrected for common signal
-                        pConS = (
-                            self.pCon[:, ixPC] - self.cCon[:, ixPC] * tSF[X_data + 9]
+                        positive_sumS = (
+                            self.positive_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * tSF[X_data + 9]
                         )  # + constituent corrected for common signal
-                        cConS = self.cCon[:, ixPC] * (1 - tSF[X_data + 9])
-                        mConS = self.mCon[:, ixPC] * (1 - tSF[X_data + 9])
+                        orthogonal_sumS = self.orthogonal_sum[:, component_array_index] * (1 - tSF[X_data + 9])
+                        global_minimumS = self.global_minimum[:, component_array_index] * (1 - tSF[X_data + 9])
         
-                        res[X_data + 9] = np.min([nConS - mConS, pConS - mConS]) / np.max(cConS)
+                        res[X_data + 9] = np.min([negative_sumS - global_minimumS, positive_sumS - global_minimumS]) / np.max(orthogonal_sumS)
                     res[res < 0] = np.max(
                         res
                     )  # set all negative residuals to max so as to bias towards undersubtraction
                     optSF = tSF[np.nonzero(np.abs(res) == np.min(np.abs(res)))]
-                self.optSF[ixPC] = optSF[0]
-                self.nConS[:, ixPC] = (
-                    self.nCon[:, ixPC] - self.cCon[:, ixPC] * optSF
+                self.optSF[component_array_index] = optSF[0]
+                self.negative_sumS[:, component_array_index] = (
+                    self.negative_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * optSF
                 )  # - constituent corrected for common signal
-                self.pConS[:, ixPC] = (
-                    self.pCon[:, ixPC] - self.cCon[:, ixPC] * optSF
+                self.positive_sumS[:, component_array_index] = (
+                    self.positive_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index] * optSF
                 )  # + constituent corrected for common signal
-                self.cConS[:, ixPC] = self.cCon[:, ixPC] * (1 - optSF)
-                self.mConS[:, ixPC] = self.mCon[:, ixPC] * (1 - optSF)
+                self.orthogonal_sumS[:, component_array_index] = self.orthogonal_sum[:, component_array_index] * (1 - optSF)
+                self.global_minimumS[:, component_array_index] = self.global_minimum[:, component_array_index] * (1 - optSF)
             else: #no subtraction in 1st PC 
                 optSF = 0
-                self.optSF[ixPC] = 0
-                self.nConS[:, ixPC] = (
-                    self.nCon[:, ixPC]
+                self.optSF[component_array_index] = 0
+                self.negative_sumS[:, component_array_index] = (
+                    self.negative_sum[:, component_array_index]
                 )  # - constituent corrected for common signal
-                self.pConS[:, ixPC] = (
-                    self.pCon[:, ixPC] 
+                self.positive_sumS[:, component_array_index] = (
+                    self.positive_sum[:, component_array_index] 
                 )  # + constituent corrected for common signal
-                self.cConS[:, ixPC] = self.cCon[:, ixPC] * (1 - optSF)
-                self.mConS[:, ixPC] = self.mCon[:, ixPC] * (1 - optSF)
+                self.orthogonal_sumS[:, component_array_index] = self.orthogonal_sum[:, component_array_index] * (1 - optSF)
+                self.global_minimumS[:, component_array_index] = self.global_minimum[:, component_array_index] * (1 - optSF)
 
         ## need to work out how to handle min_spectral_values
 
-        # print('extracted positive and negative LEigenvector features')
+        # print('extracted positive and negative Score features')
 
 ### figure_DSLT
     def figure_DSLT(self, arrangement):
@@ -529,17 +542,17 @@ class nipals:
         if arrangement == "DSLT":#column data (convention in maths)
             #                   D           =           S           .           LT
             txt_Positions = [[0.25, 0.95],[0.43, 0.5],[0.52, 0.95],[0.51, 0.5],[0.75, 0.95]]
-            matrix_Dims = [ "nxp" , "", "nxd" , "" , "dxp" ]
+            matrix_Dims = [ r"$n\times m$" , "", r"$n\times p$" , "" , r"$p\times m$" ]
         elif arrangement == "SDL": # scores for row data matrix
             v_Ord = np.array([2,1,0,3,4])
             txt_Positions = [[0.4, 0.95],[0.2, 0.5],[.15, 0.95],[0.51, 0.5],[0.75, 0.95]]
-            matrix_Dims = [ "nxd" , "", "nxp" , "" , "pxd" ]
+            matrix_Dims = [ r"$n\times p$" , "", r"$n\times m$" , "" , r"$m\times p$" ]
             Lstr = r"$L$"
         elif arrangement == "LTSiD": # loadings for row data matrix
             v_Ord = np.array([4,1,2,3,0])
             #                   D           =           S           .           LT
             txt_Positions = [[0.75, 0.95],[0.43, 0.5],[0.5, 0.95],[0.55, 0.5],[0.25, 0.95]]
-            matrix_Dims = [ "dxp" , "", "dxn" , "" , "nxp" ]
+            matrix_Dims = [ r"$p\times m$" , "", r"$p\times n$" , "" , r"$n\times m$" ]
             s_Str = ") $S^\dagger$" #overwrite S amtrix name to indicate pseudo-inverse
         else:
             print(str(arrangement)+" is not a valid option. Use DSLT, SDL or LTSiD") 
@@ -558,26 +571,34 @@ class nipals:
         axDSLT[v_Ord[0]].plot(self.pixel_axis[[0,-1]],self.data0lines)
 
         if arrangement == "LTSiD":
-            axDSLT[v_Ord[2]].plot(self.iLEigenvectors4plot.transpose(), ".",
-                  transform=transforms.Affine2D().rotate_deg(90) + 
+            axDSLT[v_Ord[2]].plot(self.iScores4plot.T, ".",
+                  transform=transforms.Affine2D().rotate_deg(270) + 
                   axDSLT[v_Ord[2]].transData)
-            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.iLEig0lines, "-.",
-                  transform=transforms.Affine2D().rotate_deg(90) + 
+            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.iScore0lines, "-.",
+                  transform=transforms.Affine2D().rotate_deg(270) + 
                   axDSLT[v_Ord[2]].transData)
         else:
-            axDSLT[v_Ord[2]].plot(self.LEigenvectors4plot.transpose(), ".")
-            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.LEig0lines, "-.")
+            axDSLT[v_Ord[2]].plot(self.Scores4plot.T, ".")
+            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.Score0lines, "-.")
+# currently have xcf files in GIMP that do the shading. 
+# To apply to an updated figure:
+# 1. paste in the new png generated by Python
+# 2. set as a new layer
+# 3. move down to just above the base layer (remove and previous edits)
+# 4. for inverse loadings (LTSiD) you need to select the scores area and paste 
+#    in a new layer the flip horizontally
+# 5. export as png to replace the python generated version
         
         if arrangement == "SDL":
-            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.REigenvectors4plot,
+            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.Loadings4plot,
                   transform=transforms.Affine2D().rotate_deg(90) + 
                   axDSLT[v_Ord[4]].transData)
-            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.',
+            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.Loading0lines,'-.',
                   transform=transforms.Affine2D().rotate_deg(90) + 
                   axDSLT[v_Ord[4]].transData)
         else:
-            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.REigenvectors4plot)
-            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.REig0lines,'-.')
+            axDSLT[v_Ord[4]].plot(self.pixel_axis,self.Loadings4plot)
+            axDSLT[v_Ord[4]].plot(self.pixel_axis[[0,-1]],self.Loading0lines,'-.')
         
         for iC in range(np.shape(self.fig_i)[0]):
             axDSLT[v_Ord[4]].lines[iC].set_color(str(0 + iC / 5)) #shade loadings
@@ -813,17 +834,17 @@ class nipals:
         plt.close()
         
 ### figure_sldi
-    def figure_sldi(self, iPC):
+    def figure_sldi(self, component_index):
             # plots the vector process for how scores are calculated to compliment the 
     # relevant math equation, rather than directly represent it. 
-    # iPC is the PC number, not index so starts at 1 for the first PC
+    # component_index is the PC number, not index so starts at 1 for the first PC
     
     # vector plots differ radically so not simple to create common function
-        if iPC is None:
-            ixPC = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
+        if component_index is None:
+            component_array_index = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
         else:
-            ixPC = iPC-1
+            component_array_index = component_index-1
         figsldi, axsldi = plt.subplots(1, 5, figsize=self.fig_Size)
         axsldi[0] = plt.subplot2grid((1, 20), (0, 0), colspan=8)
         axsldi[1] = plt.subplot2grid((1, 20), (0, 8), colspan=1)
@@ -831,33 +852,33 @@ class nipals:
         axsldi[3] = plt.subplot2grid((1, 20), (0, 17), colspan=1)
         axsldi[4] = plt.subplot2grid((1, 20), (0, 18), colspan=2)
     
-        iSamMin = np.argmin(self.LEigenvector[:, iPC])
-        iSamMax = np.argmax(self.LEigenvector[:, ixPC])
+        iSamMin = np.argmin(self.component_weight[:, component_array_index])
+        iSamMax = np.argmax(self.component_weight[:, component_array_index])
         iSamZer = np.argmin(
-            np.abs(self.LEigenvector[:, ixPC])
+            np.abs(self.component_weight[:, component_array_index])
         )  # Sam = 43 #the ith sample to plot
         sf_iSam = np.mean(
             [
-                sum(self.X[:, iSamMin] ** 2) ** 0.5,
-                sum(self.X[:, iSamMax] ** 2) ** 0.5,
-                sum(self.X[:, iSamZer] ** 2) ** 0.5,
+                sum(self.data[:, iSamMin] ** 2) ** 0.5,
+                sum(self.data[:, iSamMax] ** 2) ** 0.5,
+                sum(self.data[:, iSamZer] ** 2) ** 0.5,
             ]
         )  # use samescaling factor to preserve relative intensity
-        offset = np.max(self.REigenvector[ixPC, :]) - np.min(
-            self.REigenvector[ixPC, :]
+        offset = np.max(self.spectral_loading[component_array_index, :]) - np.min(
+            self.spectral_loading[component_array_index, :]
         )  # offset for clarity
         axsldi[0].plot(
             self.pixel_axis,
-            self.REigenvector[ixPC, :] + offset * 1.25,
+            self.spectral_loading[component_array_index, :] + offset * 1.25,
             "k",
             self.pixel_axis,
-            self.X[:, iSamMax] / sf_iSam + offset / 4,
+            self.data[:, iSamMax] / sf_iSam + offset / 4,
             "r",
             self.pixel_axis,
-            self.X[:, iSamZer] / sf_iSam,
+            self.data[:, iSamZer] / sf_iSam,
             "b",
             self.pixel_axis,
-            self.X[:, iSamMin] / sf_iSam - offset / 4,
+            self.data[:, iSamMin] / sf_iSam - offset / 4,
             "g",
             self.pixel_axis[[0,-1]],
             np.tile(offset *1.25,(2,1)),
@@ -872,24 +893,24 @@ class nipals:
             np.tile(-offset / 4,(2,1)),
             "-.g",
         )
-        axsldi[0].legend(("$pc_i$", "$d_{max}$", "$d_0$", "$d_{min}$"))
-        temp = self.REigenvector[ixPC, :] * self.X[:, iSamZer]
+        axsldi[0].legend(("$l_p$", "$d_{max}$", "$d_{zero}$", "$d_{min}$"))
+        temp = self.spectral_loading[component_array_index, :] * self.data[:, iSamZer]
         offsetProd = np.max(temp) - np.min(temp)
         axsldi[2].plot(
             self.pixel_axis,
-            self.REigenvector[ixPC, :] * self.X[:, iSamMax] + offsetProd,
+            self.spectral_loading[component_array_index, :] * self.data[:, iSamMax] + offsetProd,
             "r",
             self.pixel_axis[[0,-1]],
             np.tile(offsetProd,(2,1)),
             "-.r",
             self.pixel_axis,
-            self.REigenvector[ixPC, :] * self.X[:, iSamZer],
+            self.spectral_loading[component_array_index, :] * self.data[:, iSamZer],
             "b",
             self.pixel_axis[[0,-1]],
             np.tile(0,(2,1)),
             "-.b",
             self.pixel_axis,
-            self.REigenvector[ixPC, :] * self.X[:, iSamMin] - offsetProd,
+            self.spectral_loading[component_array_index, :] * self.data[:, iSamMin] - offsetProd,
             "g",
             self.pixel_axis[[0,-1]],
             np.tile(-offsetProd,(2,1)),
@@ -899,11 +920,11 @@ class nipals:
         PCilims = np.tile(
             np.array(
                 [
-                    np.average(self.LEigenvector[:, ixPC])
-                    - 1.96 * np.std(self.LEigenvector[:, ixPC]),
-                    np.average(self.LEigenvector[:, ixPC]),
-                    np.average(self.LEigenvector[:, ixPC])
-                    + 1.96 * np.std(self.LEigenvector[:, ixPC]),
+                    np.average(self.component_weight[:, component_array_index])
+                    - 1.96 * np.std(self.component_weight[:, component_array_index]),
+                    np.average(self.component_weight[:, component_array_index]),
+                    np.average(self.component_weight[:, component_array_index])
+                    + 1.96 * np.std(self.component_weight[:, component_array_index]),
                 ]
             ),
             (2, 1),
@@ -913,21 +934,21 @@ class nipals:
             PCilims,
             "k--",
             5,
-            self.LEigenvector[iSamMax, ixPC],
+            self.component_weight[iSamMax, component_array_index],
             "r.",
             5,
-            self.LEigenvector[iSamZer, ixPC],
+            self.component_weight[iSamZer, component_array_index],
             "b.",
             5,
-            self.LEigenvector[iSamMin, ixPC],
+            self.component_weight[iSamMin, component_array_index],
             "g.",
             markersize=10,
         )
         ylimLEV = (
             np.abs(
                 [
-                    self.LEigenvector[:, ixPC].min(),
-                    self.LEigenvector[:, ixPC].max(),
+                    self.component_weight[:, component_array_index].min(),
+                    self.component_weight[:, component_array_index].max(),
                 ]
             ).max()
             * 1.05
@@ -935,7 +956,7 @@ class nipals:
         axsldi[4].set_ylim([-ylimLEV, ylimLEV])
         
         axsldi[0].annotate(
-            "A) PC"+str(iPC)+" and data",
+            "A) PC"+str(component_index)+" loading & data",
             xy=(0.2, 0.95),
             xytext=(0.25, 0.95),
             textcoords="figure fraction",
@@ -953,7 +974,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axsldi[1].annotate(
-            r"$pc_i \times d_i$",
+            r"$l_p \times d_o$",
             xy=(0.5, 0.5),
             xytext=(0.5, 0.52),
             xycoords="axes fraction",
@@ -970,7 +991,7 @@ class nipals:
             horizontalalignment="center",
         )
         axsldi[3].annotate(
-            "$\Sigma _{v=1}^{v=p}$",
+            "$\Sigma _{v=1}^{v=m}$",
             xy=(0, 0.5),
             xytext=(0.5, 0.52),
             textcoords="axes fraction",
@@ -1004,7 +1025,7 @@ class nipals:
             horizontalalignment="left",
         )
         axsldi[4].annotate(
-            "$\overline{S_{i}}$",
+            "$\overline{S_{p}}$",
             xy=(0, 0.9),
             xytext=(1, 0.49),
             textcoords="axes fraction",
@@ -1046,34 +1067,34 @@ class nipals:
         axsldiRes[1] = plt.subplot2grid((1, 17), (0, 8), colspan=1)
         axsldiRes[2] = plt.subplot2grid((1, 17), (0, 9), colspan=8)
 
-        iSamResMax = self.X[:, iSamMax] - np.inner(
-            self.LEigenvector[iSamMax, ixPC],
-            self.REigenvector[ixPC, :],
+        iSamResMax = self.data[:, iSamMax] - np.inner(
+            self.component_weight[iSamMax, component_array_index],
+            self.spectral_loading[component_array_index, :],
         )
-        iSamResZer = self.X[:, iSamZer] - np.inner(
-            self.LEigenvector[iSamZer, ixPC],
-            self.REigenvector[ixPC, :],
+        iSamResZer = self.data[:, iSamZer] - np.inner(
+            self.component_weight[iSamZer, component_array_index],
+            self.spectral_loading[component_array_index, :],
         )
-        iSamResMin = self.X[:, iSamMin] - np.inner(
-            self.LEigenvector[iSamMin, ixPC],
-            self.REigenvector[ixPC, :],
+        iSamResMin = self.data[:, iSamMin] - np.inner(
+            self.component_weight[iSamMin, component_array_index],
+            self.spectral_loading[component_array_index, :],
         )
 #        offsetRes = np.max(iSamResZer) - np.min(iSamResZer)
 
         axsldiRes[0].plot(
             self.pixel_axis,
-            self.X[:, iSamMax] / sf_iSam + offset / 4,
+            self.data[:, iSamMax] / sf_iSam + offset / 4,
             "r",
             self.pixel_axis,
-            self.X[:, iSamZer] / sf_iSam,
+            self.data[:, iSamZer] / sf_iSam,
             "b",
             self.pixel_axis,
-            self.X[:, iSamMin] / sf_iSam - offset / 4,
+            self.data[:, iSamMin] / sf_iSam - offset / 4,
             "g",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamMax, ixPC],
-                self.REigenvector[ixPC, :],
+                self.component_weight[iSamMax, component_array_index],
+                self.spectral_loading[component_array_index, :],
             )
             / sf_iSam
             + offset / 4,
@@ -1089,21 +1110,21 @@ class nipals:
             "-.g",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamZer, ixPC],
-                self.REigenvector[ixPC, :],
+                self.component_weight[iSamZer, component_array_index],
+                self.spectral_loading[component_array_index, :],
             )
             / sf_iSam,
             "k--",
             self.pixel_axis,
             np.inner(
-                self.LEigenvector[iSamMin, ixPC],
-                self.REigenvector[ixPC, :],
+                self.component_weight[iSamMin, component_array_index],
+                self.spectral_loading[component_array_index, :],
             )
             / sf_iSam
             - offset / 4,
             "k--",
         )
-        axsldiRes[0].legend(("$d_{max}$", "$d_0$", "$d_{min}$", r"$pc_i\times d_{j}$"))
+        axsldiRes[0].legend(("$d_{max}$", "$d_{zero}$", "$d_{min}$", r"$l_p\times d_{o}$"))
 
         axsldiRes[2].plot(
             self.pixel_axis,
@@ -1128,7 +1149,7 @@ class nipals:
         axsldiRes[2].set_ylim(axsldiRes[0].get_ylim())
         
         axsldiRes[0].annotate(
-            "A) PC"+str(iPC)+" weighted data overlaid on data",
+            "A) Data & PC"+str(component_index)+" loading weighted data",
             xy=(0.2, 0.95),
             xytext=(0.3, 0.95),
             textcoords="figure fraction",
@@ -1144,7 +1165,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axsldiRes[1].annotate(
-            r"$d_i-$",
+            r"$d_o-$",
             xy=(0.5, 0.5),
             xytext=(0.5, 0.52),
             xycoords="figure fraction",
@@ -1153,7 +1174,7 @@ class nipals:
             horizontalalignment="center",
         )
         axsldiRes[1].annotate(
-            r"$(pc_i \times d_i)$",
+            r"$(l_p \times d_o)$",
             xy=(0.5, 0.5),
             xytext=(0.5, 0.46),
             xycoords="figure fraction",
@@ -1162,7 +1183,7 @@ class nipals:
             horizontalalignment="center",
         )
         axsldiRes[2].annotate(
-            "B) PC"+str(iPC)+" residual",
+            "B) PC"+str(component_index)+" residual",
             xy=(0.2, 0.95),
             xytext=(0.75, 0.95),
             textcoords="figure fraction",
@@ -1191,14 +1212,14 @@ class nipals:
         plt.close()
         
 ### figure_lsdi
-    def figure_lsdi( self , iPC ):
-        ###################        START lsdiLEigenvectorEqn          #######################
-        # FIGURE for the ith REigenvector equation Li = S^\daggeri*D
-        if iPC is None:
-            ixPC = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
+    def figure_lsdi( self , component_index ):
+        ###################        START lsdiScoreEqn          #######################
+        # FIGURE for the ith Loading equation Li = S^\daggeri*D
+        if component_index is None:
+            component_array_index = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
         else:
-            ixPC = iPC-1
+            component_array_index = component_index-1
         figlsdi, axlsdi = plt.subplots(1, 6, figsize=self.fig_Size)
         axlsdi[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
         axlsdi[1] = plt.subplot2grid((1, 21), (0, 1), colspan=6)
@@ -1207,19 +1228,15 @@ class nipals:
         axlsdi[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
         axlsdi[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
         
-        c_Inv_Score = self.LEigenvector[:,ixPC]/self.Eigenvalue[iPC]
-#TO DO CHECK HOW EXACTLY INVERSION WORKS IN TERMS OF VECTORS
+        c_Inv_Score = self.icomponent_weight[component_array_index,:]
         PCilims = np.tile(np.array([np.nanmean(c_Inv_Score)-1.96*np.nanstd(c_Inv_Score),
                                     0,
                                     np.nanmean(c_Inv_Score)+1.96*np.nanstd(c_Inv_Score)]),
                           (2,1))
 
-#            transform=transforms.Affine2D().rotate_deg(90) + axlsdi[0].transData,
-        # TODO need different colour per sample
-#        sf = np.mean(np.max(self.X[:,self.fig_k],axis=0)/c_Inv_Score[self.fig_k])
         axlsdi[1].plot(
             self.pixel_axis, 
-            4*self.X[:,self.fig_k]/self.Eigenvalue[iPC] + c_Inv_Score[self.fig_k],
+            4*self.data[:,self.fig_k]/self.Eigenvalue[component_index] + c_Inv_Score[self.fig_k],
             [self.pixel_axis[0],self.pixel_axis[-1]], 
             np.tile(c_Inv_Score[self.fig_k],(2,1)),
             "-."
@@ -1265,7 +1282,7 @@ class nipals:
         )
 
         axlsdi[0].annotate(
-            "A) $s^\dagger_{k,i}$",
+            "A) $s^\dagger_{o,p}$",
             xy=(0.12, 0.95),
             xytext=(0.12, 0.95),
             textcoords="figure fraction",
@@ -1274,7 +1291,7 @@ class nipals:
             horizontalalignment="center",
         )
         axlsdi[1].annotate(
-            "B) $d_k$",
+            "B) $d_o$",
             xy=(0.27, 0.95),
             xytext=(0.27, 0.95),
             textcoords="figure fraction",
@@ -1282,9 +1299,9 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
-        axlsdi[3].plot(c_Inv_Score[self.fig_k] * self.X[:,self.fig_k])
+        axlsdi[3].plot(c_Inv_Score[self.fig_k] * self.data[:,self.fig_k])
         axlsdi[3].annotate(
-            r"C) $s^\dagger_{k,i} \times d_k$",
+            r"C) $s^\dagger_{o,p} \times d_o$",
             xy=(0.52, 0.95),
             xytext=(0.52, 0.95),
             textcoords="figure fraction",
@@ -1293,9 +1310,9 @@ class nipals:
             horizontalalignment="center",
             alpha = 0.95
         )
-        axlsdi[5].plot(self.REigenvector[ixPC, :])
+        axlsdi[5].plot(self.spectral_loading[component_array_index, :])
         axlsdi[5].annotate(
-            "D) $l_i$",
+            "D) $l_p$",
             xy=(0.8, 0.5),
             xytext=(0.8, 0.95),
             textcoords="figure fraction",
@@ -1305,7 +1322,7 @@ class nipals:
         )
 
         axlsdi[2].annotate(
-            r"$s^\dagger_{k,i} \times d_k$",
+            r"$s^\dagger_{o,p} \times d_o$",
             xy=(0, 0.5),
             xytext=(0.52, 0.52),
             textcoords="axes fraction",
@@ -1322,7 +1339,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axlsdi[4].annotate(
-            "$\Sigma _{j=1}^{j=n}$",
+            "$\Sigma _{o=1}^{o=n}$",
             xy=(0, 0.5),
             xytext=(0.5, 0.52),
             textcoords="axes fraction",
@@ -1371,29 +1388,29 @@ class nipals:
         figlpniS, axlpniS = plt.subplots(
             1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing in
-        for ixPC in range(1, nPC):
+        for component_array_index in range(1, nPC):
             iFig = (
-                (ixPC % 6) - 1
+                (component_array_index % 6) - 1
             )  # modulo - determine where within block the current PC is
             if iFig == -1:
                 iFig = 5  # if no remainder then it is the last in the cycle
             axlpniS[iFig] = plt.subplot2grid((1, 6), (0, iFig), colspan=1)
             axlpniS[iFig].plot(self.pixel_axis[[xview[0], xview[-0]]], [0, 0], "--")
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.nConS[xview, ixPC], "b", linewidth=1
+                self.pixel_axis[xview], self.negative_sumS[xview, component_array_index], "b", linewidth=1
             )
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.pConS[xview, ixPC], "y", linewidth=1
+                self.pixel_axis[xview], self.positive_sumS[xview, component_array_index], "y", linewidth=1
             )
             axlpniS[iFig].plot(
-                self.pixel_axis[xview], self.cConS[xview, ixPC], "g", linewidth=0.5
+                self.pixel_axis[xview], self.orthogonal_sumS[xview, component_array_index], "g", linewidth=0.5
             )
             txtpos = [
                 np.mean(axlpniS[iFig].get_xlim()),
                 axlpniS[iFig].get_ylim()[1] * 0.9,
             ]
             axlpniS[iFig].annotate(
-                "PC " + str(ixPC+1),
+                "PC " + str(component_array_index+1),
                 xy=(txtpos),
                 xytext=(txtpos),
                 textcoords="data",
@@ -1413,7 +1430,7 @@ class nipals:
                         axlpniS[iax].set_xlabel(self.fig_X_Label)
 #                        axlpniU[iax].set_xlabel(self.fig_X_Label)
 
-                image_name = f" lpni common corrected PC{str(ixPC - 4)} to {str(ixPC + 1)}."
+                image_name = f" lpni common corrected PC{str(component_array_index - 4)} to {str(component_array_index + 1)}."
                 full_path = os.path.join(images_folder, self.fig_Project +
                                         image_name + self.fig_Format)
                 figlpniS.savefig( full_path, 
@@ -1430,22 +1447,22 @@ class nipals:
         figlpniU, axlpniU = plt.subplots(
             1, 6, figsize=self.fig_Size
         )  # Extra columns to match spacing
-        for ixPC in range(1, nPC):
+        for component_array_index in range(1, nPC):
             iFig = (
-                (ixPC % 6) - 1
+                (component_array_index % 6) - 1
             )  # modulo - determine where within block the current PC is
             if iFig == -1:
                 iFig = 5  # if no remainder then it is the last in the cycle
             axlpniU[iFig] = plt.subplot2grid((1, 6), (0, iFig), colspan=1)
             axlpniU[iFig].plot(self.pixel_axis[[xview[0], xview[-0]]], [0, 0], "--")
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.nCon[xview, ixPC], "b", linewidth=1
+                self.pixel_axis[xview], self.negative_sum[xview, component_array_index], "b", linewidth=1
             )
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.pCon[xview, ixPC], "y", linewidth=1
+                self.pixel_axis[xview], self.positive_sum[xview, component_array_index], "y", linewidth=1
             )
             axlpniU[iFig].plot(
-                self.pixel_axis[xview], self.cCon[xview, ixPC], "g", linewidth=0.5
+                self.pixel_axis[xview], self.orthogonal_sum[xview, component_array_index], "g", linewidth=0.5
             ) 
             axlpniU[iFig].annotate(
                 "PC " + str(iFig + 2),
@@ -1469,7 +1486,7 @@ class nipals:
                     axlpniU[iax].set_ylabel("Weighted " + self.fig_Y_Label)
                     for iax in range(len(axlpniU)):
                         axlpniU[iax].set_xlabel(self.fig_X_Label)
-                image_name = f" lpni common raw PC{str(ixPC - 4)} to {str(ixPC + 1)}."
+                image_name = f" lpni common raw PC{str(component_array_index - 4)} to {str(component_array_index + 1)}."
                 full_path = os.path.join(images_folder, self.fig_Project +
                                         image_name + self.fig_Format)
                 figlpniU.savefig(full_path, 
@@ -1502,18 +1519,18 @@ class nipals:
         ###### Plot positive, negative score and common  signals without any  common signal subtraction ######
         ###################         END lpniCommonSignalScalingFactors           #######################
 
-### figure_lpniLEigenvectorEqn
-    def figure_lpniLEigenvectorEqn(self, iPC):
+### figure_lpniScoreEqn
+    def figure_lpniScoreEqn(self, component_index):
         # this class function prints out images comparing the score magnitude weighted summed spectra for
         # positive and negative score spectra. The class must have already calculated the positive, negative
         # and common consitituents
-        if iPC is None:
-            ixPC = self.fig_i[1] #internal list is python index so need to add 1 for compatibility
+        if component_index is None:
+            component_array_index = self.fig_i[1] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to second PC used in matrix figures')
         else:
-            ixPC = iPC-1
+            component_array_index = component_index-1
 
-        if ~np.isnan(self.cCon[0, ixPC]):
+        if ~np.isnan(self.orthogonal_sum[0, component_array_index]):
 
             figlpni, axlpni = plt.subplots(1, 6, figsize=self.fig_Size)
             axlpni[0] = plt.subplot2grid((1, 21), (0, 0), colspan=1)
@@ -1522,35 +1539,35 @@ class nipals:
             axlpni[3] = plt.subplot2grid((1, 21), (0, 8), colspan=6)
             axlpni[4] = plt.subplot2grid((1, 21), (0, 14), colspan=1)
             axlpni[5] = plt.subplot2grid((1, 21), (0, 15), colspan=6)
-            posSc = self.LEigenvector[:, ixPC] > 0  # skip PC1 as not subtraction
+            posSc = self.component_weight[:, component_array_index] > 0  # skip PC1 as not subtraction
             if any(np.sum(posSc==True)==[0,np.shape(posSc)[0]]) or any(np.sum(posSc==False)==[0,np.shape(posSc)[0]]): 
-                iPC = 2
-                ixPC = iPC-1
+                component_index = 2
+                component_array_index = component_index-1
                 print('Data not mean centered, so assuming input data is all positive then no positive/negative split will be observed. Defaulting to PC2')
                 #this switches PC to 2 if PC1 has no combination of positive or negative
             axlpni[0].plot([-10, 10], np.tile(0, (2, 1)), "k")
-            axlpni[0].plot(np.tile(0, sum(posSc)), self.LEigenvector[posSc, ixPC], ".y")
+            axlpni[0].plot(np.tile(0, sum(posSc)), self.component_weight[posSc, component_array_index], ".y")
             axlpni[0].plot(
                 np.tile(0, sum(posSc == False)),
-                self.LEigenvector[posSc == False, ixPC],
+                self.component_weight[posSc == False, component_array_index],
                 ".b",
             )
 
-            axlpni[1].plot(self.pixel_axis, self.X[:, posSc], "y")
-            axlpni[1].plot(self.pixel_axis, self.X[:, posSc == False], "--b", lw=0.1)
+            axlpni[1].plot(self.pixel_axis, self.data[:, posSc], "y")
+            axlpni[1].plot(self.pixel_axis, self.data[:, posSc == False], "--b", lw=0.1)
 
-            axlpni[3].plot(self.pixel_axis, self.nCon[:, ixPC], "b")
-            axlpni[3].plot(self.pixel_axis, self.pCon[:, ixPC], "y")
+            axlpni[3].plot(self.pixel_axis, self.negative_sum[:, component_array_index], "b")
+            axlpni[3].plot(self.pixel_axis, self.positive_sum[:, component_array_index], "y")
 
-            pnCon = self.pCon[:, ixPC] - self.nCon[:, ixPC]
-            pnCon = pnCon / np.sum(pnCon ** 2) ** 0.5 # unit vector
-            axlpni[5].plot(self.REigenvector[ixPC, :], "m")
-            axlpni[5].plot(pnCon, "c")
-            axlpni[5].plot(self.REigenvector[ixPC, :] - pnCon, "--k")
+            pnegative_sum = self.positive_sum[:, component_array_index] - self.negative_sum[:, component_array_index]
+            pnegative_sum = pnegative_sum / np.sum(pnegative_sum ** 2) ** 0.5 # unit vector
+            axlpni[5].plot(self.spectral_loading[component_array_index, :], "m")
+            axlpni[5].plot(pnegative_sum, "c")
+            axlpni[5].plot(self.spectral_loading[component_array_index, :] - pnegative_sum, "--k")
 
             # subplot headers
             axlpni[0].annotate(
-                "A) $s^\dagger_{k,i}$",
+                "A) $s^\dagger_{o,p}$",
                 xy=(0.12, 0.95),
                 xytext=(0.12, 0.95),
                 textcoords="figure fraction",
@@ -1559,7 +1576,7 @@ class nipals:
                 horizontalalignment="center",
             )
             axlpni[1].annotate(
-                "B) $d_k$",
+                "B) $d_o$",
                 xy=(0.27, 0.95),
                 xytext=(0.27, 0.95),
                 textcoords="figure fraction",
@@ -1568,7 +1585,7 @@ class nipals:
                 horizontalalignment="center",
             )
             axlpni[3].annotate(
-                r"C) $|s\pm^\dagger_{k,i}| \times d_k$",
+                r"C) $|s^\dagger_{o,p\pm}| \times d_o = l_{p\pm}$",
                 xy=(0.52, 0.95),
                 xytext=(0.52, 0.95),
                 textcoords="figure fraction",
@@ -1578,7 +1595,7 @@ class nipals:
                 alpha = 0.95
             )
             axlpni[5].annotate(
-                "D) $l_i$",
+                "D) $l_p$",
                 xy=(0.8, 0.5),
                 xytext=(0.8, 0.95),
                 textcoords="figure fraction",
@@ -1589,93 +1606,107 @@ class nipals:
 
             # other annotation
             axlpni[1].annotate(
-                "$s_{k,i}>0$",
+                "$s_{o,p}^\dagger >0$",
                 xy=(0.37, 0.8),
-                xytext=(0.40, 0.85),
+                xytext=(0.41, 0.87),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
                 color="y",
             )
             axlpni[1].annotate(
-                "$s_{k,i}<0$",
+                "$s_{o,p}^\dagger <0$",
                 xy=(0.35, 0.78),
-                xytext=(0.40, 0.82),
+                xytext=(0.41, 0.82),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
                 color="b",
             )
-            axlpni[3].annotate(
-                r"$s_i\times d_i$",
-                xy=(0.1, 0.9),
-                xytext=(0.6, 0.9),
-                textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="center",
-            )
 
-#            ylim = np.max(pnCon)
-            axlpni[5].annotate(
-                "$L$",
-                xy=(0.1, 0.9),
-                xytext=(0, 0.9),
+            axlpni[3].annotate(
+                "$l_{p+}$",
+                xy=(0.37, 0.8),
+                xytext=(0.41, 0.87),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
+                horizontalalignment="left",
+                color="y",
+            )
+            axlpni[3].annotate(
+                "$l_{p-}$",
+                xy=(0.35, 0.78),
+                xytext=(0.41, 0.82),
+                xycoords="axes fraction",
+                textcoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                horizontalalignment="left",
+                color="b",
+            )
+
+
+#            ylim = np.max(pnegative_sum)
+            axlpni[5].annotate(
+                "$l_p$",
+                xy=(0.1, 0.9),
+                xytext=(0, 0.92),
+                xycoords="axes fraction",
+                textcoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
                 color="m",
             )
             axlpni[5].annotate(
-                "$p-n$",
+                "$l_{p+}-l_{p-}$",
                 xy=(0.1, 0.9),
-                xytext=(0, 0.85),
+                xytext=(0, 0.87),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
                 color="c",
             )
             axlpni[5].annotate(
-                "$L-(p-n)$",
+                "$l_p-(l_{p+}-l_{p-})$",
                 xy=(0.1, 0.9),
-                xytext=(0, 0.8),
+                xytext=(0, 0.82),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="left",
                 color="k",
             )
             totdiff = "{:.0f}".format(
-                np.log10(np.mean(np.abs(self.REigenvector[ixPC, :] - pnCon)))
+                np.log10(np.mean(np.abs(self.spectral_loading[component_array_index, :] - pnegative_sum)))
             )
             axlpni[5].annotate(
-                "$\Delta_{L,p-n}=10^{" + totdiff + "}$",
+                "$\Delta_{L,l_{p+}-l_{p-}}=10^{" + totdiff + "}$",
                 xy=(0.1, 0.9),
-                xytext=(0.1, 0.77),
+                xytext=(0.5, 0),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="left",
+                fontsize=self.fig_Text_Size*0.75,
+                horizontalalignment="center",
                 color="k",
             )
 
             axlpni[2].annotate(
-                r"$\Sigma(|s_i^+|\times d_i^+)$",
+                r"$\Sigma(s_{p+}^\dagger \times d_{p+})$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.55),
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
-                r"$\Sigma(|s_i^-|\times d_i^-)$",
+                r"$\Sigma(-s_{p-}^\dagger \times d_{p-})$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.42),
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
+                fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
@@ -1686,14 +1717,6 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
-            )
-            axlpni[4].annotate(
-                "$sd_i^+-sd_i^-$",
-                xy=(0, 0.5),
-                xytext=(0.5, 0.55),
-                textcoords="axes fraction",
-                fontsize=self.fig_Text_Size,
-                horizontalalignment="center",
             )
             axlpni[4].annotate(
                 "",
@@ -1712,7 +1735,7 @@ class nipals:
             if self.fig_Show_Labels:
                 axlpni[0].set_xlabel(self.fig_X_Label)
                 
-            image_name = f"  positive negative contributions PC_{str(iPC)}."
+            image_name = f" positive negative contributions PC_{str(component_index)}."
             full_path = os.path.join(images_folder, self.fig_Project +
                                     image_name + self.fig_Format)
             figlpni.savefig(full_path, 
@@ -1721,35 +1744,35 @@ class nipals:
             
         else:
             print(
-                "Common, Positive and Negative Consituents must be calculated first using calcCons"
+                "Common, Positive and Negative Consituents must be calculated first using calorthogonal_sums"
             )
 
 ### figure_lpniCommonSignal
-    def figure_lpniCommonSignal(self, iPC, SF = None):
-# iPC allows control of which PC is plotted
+    def figure_lpniCommonSignal(self, component_index, SF = None):
+# component_index allows control of which PC is plotted
 # SF allows control of the scaling factor tested. Leaving no SF will default to the value calculated by calc_Constituents
         
         # this class function prints out images comparing the score magnitude weighted summed spectra for
         # positive and negative score spectra corrected for the common consitituents, compared with the common
         # consituents itself and the scaled global minimum
-        if iPC is None:
-            iPC = 2
+        if component_index is None:
+            component_index = 2
             print('No PC defined for lpniCommonSignal. Defaulting to PC2')
-        ixPC = iPC-1
+        component_array_index = component_index-1
 
         if SF is None:
-            SF = self.optSF[ixPC]
-            plt.plot(self.pixel_axis, self.nConS[:, ixPC], "b")
-            plt.plot(self.pixel_axis, self.pConS[:, ixPC], "y")
-            plt.plot(self.pixel_axis, self.cConS[:, ixPC], "g")
-            plt.plot(self.pixel_axis, self.mConS[:, ixPC], "--c", linewidth=0.5)
+            SF = self.optSF[component_array_index]
+            plt.plot(self.pixel_axis, self.negative_sumS[:, component_array_index], "b")
+            plt.plot(self.pixel_axis, self.positive_sumS[:, component_array_index], "y")
+            plt.plot(self.pixel_axis, self.orthogonal_sumS[:, component_array_index], "g")
+            plt.plot(self.pixel_axis, self.global_minimumS[:, component_array_index], "--c", linewidth=0.5)
         else:
-            plt.plot(self.pixel_axis, self.nCon[:, ixPC] - self.cCon[:, ixPC]*SF, "b")
-            plt.plot(self.pixel_axis, self.pCon[:, ixPC] - self.cCon[:, ixPC]*SF, "y")
-            plt.plot(self.pixel_axis, self.cCon[:, ixPC] * (1-SF), "g")
-            plt.plot(self.pixel_axis, self.mCon[:, ixPC] * (1-SF), "--c", linewidth=0.5)
+            plt.plot(self.pixel_axis, self.negative_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index]*SF, "b")
+            plt.plot(self.pixel_axis, self.positive_sum[:, component_array_index] - self.orthogonal_sum[:, component_array_index]*SF, "y")
+            plt.plot(self.pixel_axis, self.orthogonal_sum[:, component_array_index] * (1-SF), "g")
+            plt.plot(self.pixel_axis, self.global_minimum[:, component_array_index] * (1-SF), "--c", linewidth=0.5)
 
-        image_name = " Common Signal Subtraction PC" + str(iPC) + " Scale Factor " + str(SF)
+        image_name = " Common Signal Subtraction PC" + str(component_index) + " Scale Factor " + str(SF)
         plt.title(image_name)
         plt.legend(
             ("-ve Constituent", "+ve Constituent", "Common Signal", "Global Minimum")
@@ -1786,10 +1809,10 @@ class nipals:
         axDTD[0].plot(self.pixel_axis[[0,-1]], self.data0lines,"-.")
         axDTD[2].plot(self.pixel_axis, self.dataSq4plot)
         axDTD[2].plot(self.pixel_axis[[0,-1]], self.dataSq0lines,"-.")
-        axDTD[4].plot(self.pixel_axis,  np.sum(self.X**2,1))
+        axDTD[4].plot(self.pixel_axis,  np.sum(self.data**2,1))
 
         axDTD[0].annotate(
-            "$d_{k=1...n}$",
+            "A) $d_{o=1...n}$",
             xy=(0.1, 0.95),
             xytext=(0.22, 0.95),
             xycoords="figure fraction",
@@ -1798,7 +1821,7 @@ class nipals:
         )
 
         axDTD[2].annotate(
-            r"$d_k\times d_k$",
+            r"B) $d_o\times d_o$",
             xy=(0.1, 0.95),
             xytext=(0.51, 0.95),
             xycoords="figure fraction",
@@ -1807,7 +1830,7 @@ class nipals:
         )
 
         axDTD[4].annotate(
-            "Sum of Squares",
+            "C) Sum of Squares",
             xy=(0.1, 0.9),
             xytext=(0.8, 0.95),
             xycoords="figure fraction",
@@ -1816,7 +1839,7 @@ class nipals:
         )
 
         axDTD[1].annotate(
-            "$d_k^2$",
+            "$d_o^2$",
             xy=(0, 0.5),
             xytext=(0.5, 0.55),
             textcoords="axes fraction",
@@ -1833,7 +1856,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axDTD[3].annotate(
-            "$\Sigma _{k=1}^{k=n}(d_k^2)$",
+            "$\Sigma _{o=1}^{o=n}(d_o^2)$",
             xy=(0, 0.5),
             xytext=(0.5, 0.55),
             textcoords="axes fraction",
@@ -1908,6 +1931,10 @@ class nipals:
         axD2Dw[0, 4].plot(self.w[1][0, :], ".m")
         axD2Dw[0, 4].plot(self.w[0][0, :] / 10, ".")#divide by 10 so on visually comparable scale
         axD2Dw[0, 4].plot(self.w[0][1, :], ".c")
+        axD2Dw[0, 4].legend(["p_2,i_1","p_1,i_2","p_1,i_1"],
+              handletextpad = 0.1,
+              loc='best', bbox_to_anchor=(0, 0.5, 0.5, 0.5)
+              )
         
         # current iteration j of loading i
         axD2Dw[2, 4].plot(self.pixel_axis, self.pc[1][:, 1], "m")
@@ -1942,7 +1969,7 @@ class nipals:
 
         # subplot headers 
         axD2Dw[0, 0].annotate(
-            "A) $R_{i=0}=D_{-\mu}$",
+            "A) $R_0=D_{-\mu}$",
             xy=(0.25,0.95),
             xytext=(0.25,0.95),
             xycoords="figure fraction",
@@ -1950,7 +1977,7 @@ class nipals:
             horizontalalignment="center",
         )
         axD2Dw[0, 2].annotate(
-            "B) $\widehat{SS_{R_i}}$",
+            "B) $\widehat{SS_{R_p}}$",
             xy=(0.5,0.95),
             xytext=(0.5,0.95),
             xycoords="figure fraction",
@@ -1958,7 +1985,7 @@ class nipals:
             horizontalalignment="center",
         )
         axD2Dw[0, 4].annotate(
-            "C) $S_i^j$",
+            "C) $S_{p,i}$",
             xy=(0.75,0.95),
             xytext=(0.8,0.95),
             xycoords="figure fraction",
@@ -1966,7 +1993,7 @@ class nipals:
             horizontalalignment="center",
         )
         axD2Dw[2, 4].annotate(
-            "D) $L_{i,j}^T$",
+            "D) $L_{p,i}^T$",
             xy=(0.75,0.1),
             xytext=(0.8,0.1),
             xycoords="figure fraction",
@@ -1974,7 +2001,7 @@ class nipals:
             horizontalalignment="center",
         )
         axD2Dw[2, 2].annotate(
-            "E) Iteration Change in $L^T$",
+            "E) $\Delta L^T_{i,i-1}$",
             xy=(0.5,0.1),
             xytext=(0.5,0.1),
             xycoords="figure fraction",
@@ -1992,7 +2019,7 @@ class nipals:
 
         # other information
         axD2Dw[0, 1].annotate(
-            "$\widehat{\Sigma(R_{i=0}^2)}$",
+            "$\widehat{\Sigma(R_0^2)}$",
             xy=(0, 0.5),
             xytext=(0.5, 0.55),
             textcoords="axes fraction",
@@ -2010,7 +2037,7 @@ class nipals:
         )
 
         axD2Dw[0, 3].annotate(
-            "$R_{i}/\widehat{SS}$",
+            "$R_p\widehat{SS}$",
             xy=(0, 0.5),
             xytext=(0.5, 0.55),
             textcoords="axes fraction",
@@ -2027,7 +2054,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[0, 3].annotate(
-            "$i=i+1$",
+            "$p=p+1$",
             xy=(0, 0.5),
             xytext=(0.5, 0.45),
             textcoords="axes fraction",
@@ -2035,7 +2062,7 @@ class nipals:
             horizontalalignment="center",
         )
         axD2Dw[0, 3].annotate(
-            "$j=j+1$",
+            "$i=i+1$",
             xy=(0, 0.5),
             xytext=(0.5, 0.40),
             textcoords="axes fraction",
@@ -2051,7 +2078,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 2].annotate(
-            r"$R_{i-1}\times S_{i,j}^\dagger$",
+            r"$S_{p,i}^\dagger\times R_{p-1}$",
             xy=(0.55, 0.5),
             xytext=(0.57, 0.5),
             textcoords="axes fraction",
@@ -2069,25 +2096,25 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[2, 3].annotate(
-            "$|L_{i,j}-L_{i,j-1}|$",
+            "$|L_{p,i}-L_{p,i-1}|$",
             xy=(0.53, 0.55),
-            xytext=(0.53, 0.55),
+            xytext=(0.5, 0.42),
             textcoords="axes fraction",
             fontsize=self.fig_Text_Size*0.75,
             horizontalalignment="center",
         )
         axD2Dw[2, 2].annotate(
-            "$\Sigma|L_i^{jT}-L_i^{(j-1)T}|<Tol$",
+            "$\Sigma|\Delta L^T_{i,i-1}|<Tol$",
             xy=(0.48,0.375),
-            xytext=(0.48,0.375),
+            xytext=(0.48,0.38),
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size*0.75,
             horizontalalignment="center",
         )
         axD2Dw[2, 2].annotate(
-            "OR $j=max\_j$",
+            "OR $i=max\_i$",
             xy=(0.45,0.36),
-            xytext=(0.48,0.36),
+            xytext=(0.48,0.355),
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size*0.75,
             horizontalalignment="center",
@@ -2103,7 +2130,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 1].annotate(
-            r"$R_{i-1}^T\times L_{i,j}$",
+            r"$R_{p-1}^T\times L_{p,i}$",
             xy=(0.65,0.55),
             xytext=(0.57,0.47),
             xycoords="figure fraction",
@@ -2112,7 +2139,7 @@ class nipals:
             rotation=45,
         )
         axD2Dw[1, 1].annotate(
-            "$j=j+1$",
+            "$i=i+1$",
             xy=(0.65,0.55),
             xytext=(0.59,0.45),
             xycoords="figure fraction",
@@ -2133,7 +2160,7 @@ class nipals:
         )
 
         axD2Dw[2, 1].annotate(
-            r"$R_{i-1}-S_{i}\times L_{i}^T$",
+            r"$R_{p-1}-S_{p}\times L_{p}^T$",
             xy=(0.65,0.55),
             xytext=(0.38,0.27),
             xycoords="figure fraction",
@@ -2153,7 +2180,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 0].annotate(
-            "$\widehat{\Sigma(R_i^2)}$",
+            "$\widehat{\Sigma(R_p^2)}$",
             xy=(0.305,0.535),
             xytext=(0.405,0.435),
             xycoords="figure fraction",
@@ -2162,7 +2189,7 @@ class nipals:
             rotation=45,
         )
         axD2Dw[1, 0].annotate(
-            "$j=0$",
+            "$i=0$",
             xy=(0.32,0.52),
             xytext=(0.42,0.42),
             xycoords="figure fraction",
