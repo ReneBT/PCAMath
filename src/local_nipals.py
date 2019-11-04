@@ -442,11 +442,11 @@ class nipals:
             )
             self.cCon[:, ixPC] = np.inner(
                 np.inner(
-                    np.mean([self.nCon[:, ixPC], self.pCon[:, ixPC]], axis=0),
-                    self.REigenvector[range(ixPC), :],
-                ),
-                self.REigenvector[range(ixPC), :].transpose(),
-            )
+                    np.mean([self.nCon[:, ixPC], self.pCon[:, ixPC]], axis=0), # Average between positive and negative, spectral vector that is non-zero
+                    self.REigenvector[range(ixPC), :],                          # multiply by all the previous PC spectra
+                ),                                                              # returns scores for all previous loadings 
+                self.REigenvector[range(ixPC), :].transpose(),                  # Now re-weight by the previous principal components to get mean weightings.
+            )                                                                   # These are used to adjust the mean offset of the pCon and nCon spectral weightings.
             self.mCon[:, ixPC] = np.sum(
                 self.LEigenvector[posSc, ixPC] * self.min_spectral_values[:, posSc], axis=1
             )  # minimum score vector
