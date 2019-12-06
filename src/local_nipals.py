@@ -382,8 +382,13 @@ class nipals:
             self.component_weight[:, component_array_index] = (
                 self.r[component_array_index].T @ pc[:, jIt]
             )  # store Scores, = outer product( residual_i , pc_i,j )
+            self.Eigenvalue[component_array_index] = np.dot(
+                    self.component_weight[:, component_array_index].T,
+                    self.component_weight[:, component_array_index]
+            ) #calculate and store eigenvalue
             self.icomponent_weight[ component_array_index , :] = (
-                self.component_weight[:, component_array_index]/ml
+                self.component_weight[:, component_array_index]/
+                self.Eigenvalue[component_array_index]
             )  # store inverse Scores, = scores scaled to norm (U scores in SVD)
             self.r.append(
                 self.r[component_array_index]
@@ -392,7 +397,6 @@ class nipals:
             self.rE[component_array_index + 1, :] = np.sum(
                 self.r[component_array_index + 1] ** 2, 1
             )  # calculate residual variance
-            self.Eigenvalue[component_array_index] = ml #store eigenvalue (norm)
         self.prepare_Data()
             
 ### prepare_Data
