@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 #from matplotlib.patches import ConnectionPatch
 from matplotlib import transforms
+
 #from pathlib import Path
 
 # This expects to be called inside the jupyter project folder structure.
@@ -393,7 +394,7 @@ class nipals:
             self.r.append(
                 self.r[component_array_index]
                 - np.outer(self.component_weight[:, component_array_index].T, self.spectral_loading[component_array_index, :].T).T
-            )  # update residual:     residual_i+1 = residual_i - outer product( lEV_i, rEV_i )
+            )  # update residual:     couldn't get np.inner or np.dot to work
             self.rE[component_array_index + 1, :] = np.sum(
                 self.r[component_array_index + 1] ** 2, 1
             )  # calculate residual variance
@@ -428,6 +429,15 @@ class nipals:
         self.iScores4plot = (iScores4plot.T + iScore_spacing).T
         self.iScore0lines = np.tile([iScore_spacing],(2,1))
 
+### reduced_Rank_Reconstruction
+    def reduced_Rank_Reconstruction( self , X , nPC ):
+        
+        Xc = (X.T-self.centring).T
+        Scores = np.inner( Xc.T ,self.spectral_loading[:nPC,:])
+        X_recon = np.inner( Scores , self.spectral_loading[:nPC,:].T).T
+        X_recon = (X_recon.T+self.centring).T
+        return X_recon
+    
 ### calc_Constituents
     def calc_Constituents(self, nPC):
         # calculate the constituents that comprise the PC, splitting them into 3 parts:
@@ -557,7 +567,7 @@ class nipals:
             #                   D           =           S           .           LT
             txt_Positions = [[0.75, 0.95],[0.43, 0.5],[0.5, 0.95],[0.55, 0.5],[0.25, 0.95]]
             matrix_Dims = [ r"$p\times m$" , "", r"$p\times n$" , "" , r"$n\times m$" ]
-            s_Str = ") $S^\dagger$" #overwrite S amtrix name to indicate pseudo-inverse
+            s_Str = ") $S^{-1}$" #overwrite S amtrix name to indicate pseudo-inverse
         else:
             print(str(arrangement)+" is not a valid option. Use DSLT, SDL or LTSiD") 
         #    return
@@ -581,6 +591,88 @@ class nipals:
             axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.iScore0lines, "-.",
                   transform=transforms.Affine2D().rotate_deg(270) + 
                   axDSLT[v_Ord[2]].transData)
+            axDSLT[v_Ord[4]].annotate(
+                'C-C',
+                xy=(0.2, 0.04),
+                xytext=(0.05, 0.85),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[0.9, 0.75, 0.4],
+                horizontalalignment="left",
+                va="center",
+            )
+            axDSLT[v_Ord[4]].annotate(
+                'C=C$_c$',
+                xy=(0.2, 0.04),
+                xytext=(0.31, 0.86),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[1, 0, 0],
+                horizontalalignment="left",
+                rotation=90,
+                va="center",
+            )
+            axDSLT[v_Ord[4]].annotate(
+                'C-H$_2$',
+                xy=(0.2, 0.04),
+                xytext=(0.4, 0.95),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[0.8, 0.65, 0.3],
+                horizontalalignment="left",
+                rotation=90,
+                va="center",
+            )
+            axDSLT[v_Ord[4]].annotate(
+                'C-H$_x$',
+                xy=(0.2, 0.04),
+                xytext=(0.48, 0.88),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[0.87, 0.72, 0.38],
+                horizontalalignment="left",
+                va="center",
+            )
+            axDSLT[v_Ord[4]].annotate(
+                'C=C$_c$',
+                xy=(0.2, 0.04),
+                xytext=(0.73, 0.9),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[1, 0, 0],
+                horizontalalignment="left",
+                rotation=90,
+                va="center",
+            )        
+            axDSLT[v_Ord[4]].annotate(
+                'C=C$_t$',
+                xy=(0.2, 0.04),
+                xytext=(0.81, 0.82),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[0, 1, 0],
+                horizontalalignment="left",
+                rotation=90,
+                va="center",
+            )        
+            axDSLT[v_Ord[4]].annotate(
+                'C=O',
+                xy=(0.2, 0.04),
+                xytext=(0.88, 0.82),
+                textcoords="axes fraction",
+                xycoords="axes fraction",
+                fontsize=self.fig_Text_Size*0.75,
+                color=[0, 0, 1],
+                horizontalalignment="left",
+                rotation=90,
+                va="center",
+            )        
         else:
             axDSLT[v_Ord[2]].plot(self.Scores4plot.T, ".")
             axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.Score0lines, "-.")
@@ -626,6 +718,7 @@ class nipals:
             xycoords="axes fraction",
             fontsize=self.fig_Text_Size*1.5,
             horizontalalignment="center",
+            fontname="Cambria Math",
         )
         axDSLT[v_Ord[2]].annotate(
             sub_Fig[v_Ix[2]] + s_Str,
@@ -635,6 +728,7 @@ class nipals:
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
+            fontname="Cambria Math",
         )
         axDSLT[v_Ord[3]].annotate(
             r"$\cdot$",
@@ -643,6 +737,7 @@ class nipals:
             textcoords="axes fraction",
             fontsize=self.fig_Text_Size*3,
             horizontalalignment="center",
+            fontname="Cambria Math",
         )
 #        axD2Dw[0, 1].annotate(
 #            "$\widehat{\Sigma(R_{i=0}^2)}$",
@@ -660,6 +755,7 @@ class nipals:
             textcoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
+            fontname="Cambria Math",
         )
         axDSLT[v_Ord[0]].annotate(
             matrix_Dims[v_Ix[0]],
@@ -669,6 +765,7 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
             va="center",
+            fontname="Cambria Math",
         )        
         axDSLT[v_Ord[2]].annotate(
             matrix_Dims[v_Ix[2]],
@@ -687,6 +784,7 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
             va="center",
+            fontname="Cambria Math",
         )
         if arrangement == "DSLT": #only put dimensions on the main plot
             axDSLT[v_Ord[0]].annotate(
@@ -699,6 +797,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[0]].annotate(
                 "$o=n$",
@@ -708,6 +807,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[0]].annotate(
                 "$v=1$",
@@ -720,6 +820,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[0]].annotate(
                 "$v=p$",
@@ -730,6 +831,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[2]].annotate(
                 "$o=1$",
@@ -741,6 +843,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[2]].annotate(
                 "$o=n$",
@@ -750,6 +853,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[2]].annotate(
                 "$i=1$",
@@ -762,6 +866,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[2]].annotate(
                 "$i=d$",
@@ -772,6 +877,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
+                fontname="Cambria Math",
             )
             
             axDSLT[v_Ord[4]].annotate(
@@ -784,6 +890,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[4]].annotate(
                 "$i=d$",
@@ -793,6 +900,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[4]].annotate(
                 "$v=1$",
@@ -805,6 +913,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
+                fontname="Cambria Math",
             )
             axDSLT[v_Ord[4]].annotate(
                 "$v=p$",
@@ -815,6 +924,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
+                fontname="Cambria Math",
             )
         
         if not self.fig_Show_Values: 
@@ -835,7 +945,7 @@ class nipals:
         figDSLT.savefig(full_path, 
                          dpi=self.fig_Resolution)
 #        plt.show()
-        plt.close()
+#        plt.close()
         
 ### figure_sldi
     def figure_sldi(self, component_index):
@@ -1218,7 +1328,7 @@ class nipals:
 ### figure_lsdi
     def figure_lsdi( self , component_index ):
         ###################        START lsdiScoreEqn          #######################
-        # FIGURE for the ith Loading equation Li = S^\daggeri*D
+        # FIGURE for the ith Loading equation Li = S^{-1}i*D
         if component_index is None:
             component_array_index = self.fig_i[0] #internal list is python index so need to add 1 for compatibility
             print('No PC specified for vector figure (figure_dsli). Defaulting to first PC used in matrix figures')
@@ -1286,7 +1396,7 @@ class nipals:
         )
 
         axlsdi[0].annotate(
-            "A) $s^\dagger_{o,p}$",
+            "A) $s^{-1}_{o,p}$",
             xy=(0.12, 0.95),
             xytext=(0.12, 0.95),
             textcoords="figure fraction",
@@ -1305,7 +1415,7 @@ class nipals:
         )
         axlsdi[3].plot(c_Inv_Score[self.fig_k] * self.data[:,self.fig_k])
         axlsdi[3].annotate(
-            r"C) $s^\dagger_{o,p} \times d_o$",
+            r"C) $s^{-1}_{o,p} \times d_o$",
             xy=(0.52, 0.95),
             xytext=(0.52, 0.95),
             textcoords="figure fraction",
@@ -1326,7 +1436,7 @@ class nipals:
         )
 
         axlsdi[2].annotate(
-            r"$s^\dagger_{o,p} \times d_o$",
+            r"$s^{-1}_{o,p} \times d_o$",
             xy=(0, 0.5),
             xytext=(0.52, 0.52),
             textcoords="axes fraction",
@@ -1571,7 +1681,7 @@ class nipals:
 
             # subplot headers
             axlpni[0].annotate(
-                "A) $s^\dagger_{o,p}$",
+                "A) $s^{-1}_{o,p}$",
                 xy=(0.12, 0.95),
                 xytext=(0.12, 0.95),
                 textcoords="figure fraction",
@@ -1589,7 +1699,7 @@ class nipals:
                 horizontalalignment="center",
             )
             axlpni[3].annotate(
-                r"C) $|s^\dagger_{o,p\pm}| \times d_o = l_{p\pm}$",
+                r"C) $|s^{-1}_{o,p\pm}| \times d_o = l_{p\pm}$",
                 xy=(0.52, 0.95),
                 xytext=(0.52, 0.95),
                 textcoords="figure fraction",
@@ -1610,7 +1720,7 @@ class nipals:
 
             # other annotation
             axlpni[1].annotate(
-                "$s_{o,p}^\dagger >0$",
+                "$s_{o,p}^{-1} >0$",
                 xy=(0.37, 0.8),
                 xytext=(0.41, 0.87),
                 xycoords="axes fraction",
@@ -1620,7 +1730,7 @@ class nipals:
                 color="y",
             )
             axlpni[1].annotate(
-                "$s_{o,p}^\dagger <0$",
+                "$s_{o,p}^{-1} <0$",
                 xy=(0.35, 0.78),
                 xytext=(0.41, 0.82),
                 xycoords="axes fraction",
@@ -1698,7 +1808,7 @@ class nipals:
             )
 
             axlpni[2].annotate(
-                r"$\Sigma(s_{p+}^\dagger \times d_{p+})$",
+                r"$\Sigma(s_{p+}^{-1} \times d_{p+})$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.55),
                 textcoords="axes fraction",
@@ -1706,7 +1816,7 @@ class nipals:
                 horizontalalignment="center",
             )
             axlpni[2].annotate(
-                r"$\Sigma(-s_{p-}^\dagger \times d_{p-})$",
+                r"$\Sigma(-s_{p-}^{-1} \times d_{p-})$",
                 xy=(0, 0.5),
                 xytext=(0.5, 0.42),
                 textcoords="axes fraction",
@@ -2082,7 +2192,7 @@ class nipals:
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axD2Dw[1, 2].annotate(
-            r"$S_{p,i}^\dagger\times R_{p-1}$",
+            r"$S_{p,i}^{-1}\times R_{p-1}$",
             xy=(0.55, 0.5),
             xytext=(0.57, 0.5),
             textcoords="axes fraction",

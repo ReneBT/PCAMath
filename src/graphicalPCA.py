@@ -7,6 +7,7 @@ import os
 from sklearn.decomposition import PCA
 
 import src.local_nipals as npls
+#import src.local_nipalsD as nplsD
 
 # This expects to be called inside the jupyter project folder structure.
 from src.file_locations import data_folder,images_folder
@@ -284,6 +285,19 @@ class graphicalPCA:
         plt.savefig(full_path, 
                          dpi=pcaMC.fig_Resolution)
         plt.close()
+
+        plt.plot(pcaMC.spectral_loading[0,:])
+        plt.plot(pcaMC.spectral_loading[18,:])
+        plt.plot(pcaMC.spectral_loading[0,:]-pcaMC.spectral_loading[18,:])
+        plt.ylabel("Weighting")
+        plt.xlabel("Raman Shift /cm$^{-1}$")
+        image_name = " Difference between PC1 and 19"
+        full_path = os.path.join(images_folder, pcaMC.fig_Project +
+                                image_name + pcaMC.fig_Format)
+        plt.savefig(full_path, 
+                         dpi=pcaMC.fig_Resolution)
+        plt.close()
+
 ### ***   END  Data Calculations   ***
 
 
@@ -332,7 +346,7 @@ class graphicalPCA:
         
 ### ***   END  Common Signal   ***
 
-### ***   END  Scree Plot   ***
+### ***   Start  Scree Plot   ***
         #create a molarprofile with no correlation
         FAmeans = np.mean(molar_profile,1)
         FAsd = np.std(molar_profile,1)
@@ -389,9 +403,14 @@ class graphicalPCA:
         pca_0_Var_Cov.calc_PCA()
         
         shot_noise = np.random.randn(np.shape(data)[0],np.shape(data)[1])/10
+        majpk = np.where(np.mean(data,axis=1)>np.mean(data))        
+        signal = np.mean(data[majpk,:],axis=1)
         data_q_noise = data + ((data**0.5 + 10) * shot_noise / 4) #noise scales by square root of intensity - use 100 offset so baseline not close to zero
+        SNR_q = np.mean(signal/np.std((data[majpk,:]**0.5 + 10) * shot_noise[majpk,:] / 4,axis=1))
         data_1_noise = data + ((data**0.5 + 10) * shot_noise) #noise scales by square root of intensity - use 100 offset so baseline not close to zero
+        SNR_1 = np.mean(signal/np.std((data[majpk,:]**0.5 + 10) * shot_noise[majpk,:] ,axis=1))
         data_4_noise = data + ((data**0.5 + 10) * shot_noise * 4) #noise scales by square root of intensity - use 100 offset so baseline not close to zero
+        SNR_4 = np.mean(signal/np.std((data[majpk,:]**0.5 + 10) * shot_noise[majpk,:] * 4,axis=1))
         pca_q_noise = npls.nipals(
             X_data=data_q_noise,
             maximum_number_PCs=80,
@@ -426,13 +445,52 @@ class graphicalPCA:
         )
         pca_4_noise.calc_PCA()
 
+        pca_noise = npls.nipals(
+            X_data=((data**0.5 + 10) * shot_noise),
+            maximum_number_PCs=80,
+            maximum_iterations_PCs=100,
+            iteration_tolerance=0.000000000001,
+            preproc="MC",
+            pixel_axis=wavelength_axis,
+            spectral_weights=molar_profile,
+            min_spectral_values=min_data,
+        )
+        pca_noise.calc_PCA()# noise from SNR 100
+
         corrPCs_noiseq = np.inner(pca_q_noise.spectral_loading,pcaMC.spectral_loading)
         corrPCs_noise1 = np.inner(pca_1_noise.spectral_loading,pcaMC.spectral_loading)
         corrPCs_noise4 = np.inner(pca_4_noise.spectral_loading,pcaMC.spectral_loading)
+        corrPCs_noise = np.inner(pca_noise.spectral_loading,pcaMC.spectral_loading)
         #loadings already standardised to unit norm
+        corrPCs_noiseq_R2sum_ax0 = np.sum(corrPCs_noiseq**2,axis=0)#total variance shared between each noiseq loading and the noisless loadings
+        corrPCs_noiseq_R2sum_ax1 = np.sum(corrPCs_noiseq**2,axis=1)#total variance shared between each noiseless PC and the noiseq loadings
+
         maxCorr_noiseq = np.max(np.abs(corrPCs_noiseq),axis=0)
         maxCorr_noise1 = np.max(np.abs(corrPCs_noise1),axis=0)
         maxCorr_noise4 = np.max(np.abs(corrPCs_noise4),axis=0)
+        maxCorr_noise = np.max(np.abs(corrPCs_noise),axis=0)
+        maxCorrMean = ((np.sum(maxCorr_noise**2)**0.5)/
+                maxCorr_noise.shape[0]**0.5) #correlation measures noise so propagate as variance
+        maxCorrSE = maxCorrMean + [-np.std(maxCorr_noise),np.std(maxCorr_noise)]
+        
+        max_Ixq = np.empty(*maxCorr_noiseq.shape)
+        max_Ix1 = np.copy(max_Ixq)
+        max_Ix4 = np.copy(max_Ixq)
+        max_IxN = np.copy(max_Ixq)
+        max_Snq = np.copy(max_Ixq)
+        max_Sn1 = np.copy(max_Ixq)
+        max_Sn4 = np.copy(max_Ixq)
+        max_SnN = np.copy(max_Ixq)
+        
+        for iCol in range(np.shape(maxCorr_noiseq)[0]):
+            max_Ixq[iCol] = np.where(np.abs(corrPCs_noiseq[:,iCol])==maxCorr_noiseq[iCol])[0]
+            max_Snq[iCol] = np.sign(corrPCs_noiseq[max_Ixq[iCol].astype(int),iCol])
+            max_Ix1[iCol] = np.where(np.abs(corrPCs_noise1[:,iCol])==maxCorr_noise1[iCol])[0]
+            max_Sn1[iCol] = np.sign(corrPCs_noise1[max_Ix1[iCol].astype(int),iCol])
+            max_Ix4[iCol] = np.where(np.abs(corrPCs_noise4[:,iCol])==maxCorr_noise4[iCol])[0]
+            max_Sn4[iCol] = np.sign(corrPCs_noise4[max_Ix4[iCol].astype(int),iCol])
+            max_IxN[iCol] = np.where(np.abs(corrPCs_noise[:,iCol])==maxCorr_noise[iCol])[0]
+            max_SnN[iCol] = np.sign(corrPCs_noise[max_IxN[iCol].astype(int),iCol])
 
 
         figScree, axScree = plt.subplots(2, 6, figsize=[16,10])
@@ -442,32 +500,17 @@ class graphicalPCA:
         axScree[0,2] = plt.subplot2grid((2,6),(0,4),colspan=2, rowspan=1)
         axScree[1,0] = plt.subplot2grid((2,6),(1,0),colspan=3, rowspan=1)
         axScree[1,3] = plt.subplot2grid((2,6),(1,3),colspan=3, rowspan=1)
-#        axScree[0,0].plot(range(10), pcaMC.Eigenvalue[:10]**0.5, "k")
-#        axScree[0,0].plot(range(10), pca_2_Cov.Eigenvalue[:10]**0.5, "b")
-#        axScree[0,0].plot(range(10), pca_0_Cov.Eigenvalue[:10]**0.5, "r")
-#        axScree[0,0].plot(range(10), pca_0_Var_Cov.Eigenvalue[:10]**0.5, "g")
-#        axScree[0,0].set_ylabel("Eigenvalue")
-#        axScree[0,0].set_xlabel("PC rank")
-        
-#        tot_variance_data = sum(pcaMC.Eigenvalue**0.5)
-#        axScree[0,1].plot(range(10), np.cumsum(100*(pcaMC.Eigenvalue[:10]**0.5)/tot_variance_data), "k")
-#        tot_variance_2_Cov = sum(pca_2_Cov.Eigenvalue**0.5)
-#        axScree[0,1].plot(range(10), np.cumsum(100*(pca_2_Cov.Eigenvalue[:10]**0.5)/tot_variance_2_Cov), "b")
-#        tot_variance_0_Cov = sum(pca_0_Cov.Eigenvalue**0.5)
-#        axScree[0,1].plot(range(10), np.cumsum(100*(pca_0_Cov.Eigenvalue[:10]**0.5)/tot_variance_0_Cov), "r")
-#        tot_variance_0_Var_Cov = sum(pca_0_Var_Cov.Eigenvalue**0.5)
-#        axScree[0,1].plot(range(10), np.cumsum(100*(pca_0_Var_Cov.Eigenvalue[:10]**0.5)/tot_variance_0_Var_Cov), "g")
-#        axScree[0,1].set_ylabel("% Variance explained")
-#        axScree[0,1].set_xlabel("PC rank")
-            
-        
+                    
         axScree[0,0].plot(range(1,11), pcaMC.Eigenvalue[:10]**0.5, "k")
         axScree[0,0].plot(range(1,11), pca_q_noise.Eigenvalue[:10]**0.5, "b")
         axScree[0,0].plot(range(1,11), pca_1_noise.Eigenvalue[:10]**0.5, "r")
         axScree[0,0].plot(range(1,11), pca_4_noise.Eigenvalue[:10]**0.5, "g")
+        axScree[0,0].plot(range(1,11), pca_noise.Eigenvalue[:10]**0.5, "--",color=[0.75, 0.75, 0.75])
+        axScree[0,0].plot(range(1,11), 4*pca_noise.Eigenvalue[:10]**0.5, "--",color=[0.75, 0.75, 0.75])
+        axScree[0,0].plot(range(1,11), 0.25*pca_noise.Eigenvalue[:10]**0.5, "--",color=[0.75, 0.75, 0.75])
         axScree[0,0].set_ylabel("Eigenvalue")
         axScree[0,0].set_xlabel("PC rank")
-        axScree[0,0].legend(("Noiseless","SD 0.25","SD 1","SD 4"))
+        axScree[0,0].legend(("$SNR_\infty$","$SNR_{400}$","$SNR_{100}$","$SNR_{25}","Noise"))
         axScree[0,0].annotate(
             "a)",
             xy=(0.12,0.9),
@@ -481,6 +524,8 @@ class graphicalPCA:
         axScree[0,1].plot(range(1,11), np.cumsum(100*(pca_q_noise.Eigenvalue[:10]**0.5)/sum(pca_q_noise.Eigenvalue**0.5)), "b")
         axScree[0,1].plot(range(1,11), np.cumsum(100*(pca_1_noise.Eigenvalue[:10]**0.5)/sum(pca_1_noise.Eigenvalue**0.5)), "r")
         axScree[0,1].plot(range(1,11), np.cumsum(100*(pca_4_noise.Eigenvalue[:10]**0.5)/sum(pca_4_noise.Eigenvalue**0.5)), "g")
+#        axScree[0,1].plot(range(1,11), np.cumsum(100*(pca_noise.Eigenvalue[:10]**0.5)/sum(pca_4_noise.Eigenvalue**0.5)), "--",color=[0.45,0.45,0.45])
+        axScree[0,1].plot(range(1,11), np.cumsum(100*(pca_noise.Eigenvalue[:10]**0.5)/sum(pca_noise.Eigenvalue**0.5)), "--",color=[0.75,0.75,0.75])
         axScree[0,1].set_ylabel("% Variance explained")
         axScree[0,1].set_xlabel("PC rank")
         axScree[0,1].annotate(
@@ -491,12 +536,14 @@ class graphicalPCA:
             fontsize=pcaMC.fig_Text_Size,
             horizontalalignment="center",
         )
-        axScree[0,2].plot(range(1,11), np.diagonal(corrPCs_noise4)[:10], color = (0, 0.75, 0))
+        axScree[0,2].plot(range(1,11), np.abs(np.diagonal(corrPCs_noise4)[:10]), color = (0, 0.75, 0))
         axScree[0,2].plot(range(1,11), maxCorr_noise4[:10], color = (0.25, 1, 0.5), linewidth=0.75)
-        axScree[0,2].plot(range(1,11), np.diagonal(corrPCs_noise1)[:10], color = (0.75, 0, 0))
+        axScree[0,2].plot(range(1,11), np.abs(np.diagonal(corrPCs_noise1)[:10]), color = (0.75, 0, 0))
         axScree[0,2].plot(range(1,11), maxCorr_noise1[:10], color = ( 1 , 0.25, 0.5), linewidth=0.75)
-        axScree[0,2].plot(range(1,11), np.diagonal(corrPCs_noiseq)[:10], color = (0, 0, 0.75))
+        axScree[0,2].plot(range(1,11), np.abs(np.diagonal(corrPCs_noiseq)[:10]), color = (0, 0, 0.75))
         axScree[0,2].plot(range(1,11), maxCorr_noiseq[:10], color = (0.25, 0.5, 1), linewidth=0.75)
+        axScree[0,2].plot(range(1,11), np.abs(np.diagonal(corrPCs_noise)[:10]), color = (0.45, 0.45, 0.45))
+        axScree[0,2].plot(range(1,11), maxCorr_noise[:10], color = (0.75, 0.75, 0.75), linewidth=0.75)
         axScree[0,2].set_ylabel("Correlation vs noiseless")
         axScree[0,2].set_xlabel("PC rank")
         axScree[0,2].annotate(
@@ -508,10 +555,11 @@ class graphicalPCA:
             horizontalalignment="center",
         )
 
-        axScree[1,0].plot(pca_4_noise.pixel_axis, pca_4_noise.spectral_loading[:4].T-[0,0.3,0.6,0.9],color = (0, 1, 0),linewidth=1.75)
-        axScree[1,0].plot(pca_1_noise.pixel_axis, pca_1_noise.spectral_loading[:4].T-[0,0.3,0.6,0.9],color = (1, 0.15, 0.15),linewidth=1.5)
-        axScree[1,0].plot(pca_q_noise.pixel_axis, pca_q_noise.spectral_loading[:4].T-[0,0.3,0.6,0.9],color = (0.3, 0.3, 1),linewidth=1.25)
-        axScree[1,0].plot(pcaMC.pixel_axis, pcaMC.spectral_loading[:4].T-[0,0.3,0.6,0.9],color = (0, 0, 0),linewidth = 1)
+        axScree[1,0].plot(pca_noise.pixel_axis, pca_noise.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (0.75, 0.75, 0.75),linewidth=2)
+        axScree[1,0].plot(pca_4_noise.pixel_axis, pca_4_noise.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (0, 1, 0),linewidth=1.75)
+        axScree[1,0].plot(pca_1_noise.pixel_axis, pca_1_noise.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (1, 0.15, 0.15),linewidth=1.5)
+        axScree[1,0].plot(pca_q_noise.pixel_axis, pca_q_noise.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (0.3, 0.3, 1),linewidth=1.25)
+        axScree[1,0].plot(pcaMC.pixel_axis, pcaMC.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (0, 0, 0),linewidth = 1)
         axScree[1,0].set_ylabel("Weight")
         axScree[1,0].set_xticklabels([])
         axScree[1,0].set_yticklabels([])
@@ -523,10 +571,24 @@ class graphicalPCA:
             fontsize=pcaMC.fig_Text_Size,
             horizontalalignment="center",
         )
-        axScree[1,3].plot(pca_4_noise.pixel_axis, pca_4_noise.spectral_loading[:4].T-[0,0.2,0.4,0.6]-pcaMC.spectral_loading[:4].T-[0,0.2,0.4,0.6], color = (0, 1, 0),linewidth=3)
-        axScree[1,3].plot(pca_1_noise.pixel_axis, pca_1_noise.spectral_loading[:4].T-[0,0.2,0.4,0.6]-pcaMC.spectral_loading[:4].T-[0,0.2,0.4,0.6], color = (1, 0.15, 0.15), linewidth=2)
-        axScree[1,3].plot(pca_q_noise.pixel_axis, pca_q_noise.spectral_loading[:4].T-[0,0.2,0.4,0.6]-pcaMC.spectral_loading[:4].T-[0,0.2,0.4,0.6], color = (0.3, 0.3, 1),linewidth=1)
-        axScree[1,3].set_ylabel("Weight")
+#        axScree[1,3].plot(pca_noise.pixel_axis, max_SnN[:5]*pca_noise.spectral_loading[max_IxN[:5].astype(int),:].T-[0,0.3,0.6,0.9,1.2], color = (0.75, 0.75, 0.75),linewidth=2)
+#        axScree[1,3].plot(pca_4_noise.pixel_axis, max_Sn4[:5]*pca_4_noise.spectral_loading[max_Ix4[:5].astype(int),:].T-[0,0.3,0.6,0.9,1.2], color = (0, 1, 0),linewidth=1.75)
+#        axScree[1,3].plot(pca_1_noise.pixel_axis, max_Sn1[:5]*pca_1_noise.spectral_loading[max_Ix1[:5].astype(int),:].T-[0,0.3,0.6,0.9,1.2], color = (1, 0.15, 0.15), linewidth=1.5)
+#        axScree[1,3].plot(pca_q_noise.pixel_axis, max_Snq[:5]*pca_q_noise.spectral_loading[max_Ixq[:5].astype(int),:].T-[0,0.3,0.6,0.9,1.2], color = (0.3, 0.3, 1),linewidth=1.25)
+#        axScree[1,3].plot(pcaMC.pixel_axis, pcaMC.spectral_loading[:5].T-[0,0.3,0.6,0.9,1.2],color = (0, 0, 0),linewidth = 1)
+        # 1 create 3 noise variant replicates of one sample and plot overlaid
+        # 2 reconstruct replicates from noiseless PCA and plot overlaid, offset from 1
+        # 3 subtract noiseless original spectrum then plot residuals overlaid, offset from 2. Scale up if necessary to compare, annotate with scaling used
+        reps_4_noise = np.tile(data[:,23],(data.shape[1],1)).T
+        reps_4_noise = reps_4_noise + ((reps_4_noise**0.5 + 10) * shot_noise * 4) #noise scales by square root of intensity - use 100 offset so baseline not close to zero
+        reps_4_noise_recon = pcaMC.reduced_Rank_Reconstruction( reps_4_noise , 10 )
+        
+        axScree[1,3].plot(reps_4_noise)
+        axScree[1,3].plot(reps_4_noise_recon-np.mean(reps_4_noise[:]))
+        axScree[1,3].plot((reps_4_noise_recon.T-data[:,23]).T-2.5*np.mean(reps_4_noise[:]))
+        axScree[1,3].plot(10*(reps_4_noise_recon.T-data[:,23]).T-4.5*np.mean(reps_4_noise[:]))
+        axScree[1,3].plot((reps_4_noise.T-data[:,23]).T-1.5*np.mean(reps_4_noise[:]))
+        axScree[1,3].set_ylabel("Intensity")
         axScree[1,3].set_yticklabels([])
         axScree[1,3].set_xticklabels([])
         axScree[1,3].annotate(
@@ -544,6 +606,59 @@ class graphicalPCA:
                          dpi=pcaMC.fig_Resolution)
             
         plt.close()
+    
+        figNoiseCorr, axNoiseCorr = plt.subplots(1, 3, figsize=[6,10])
+        axNoiseCorr[0] = plt.subplot2grid((1,3),(0,0),)
+        axNoiseCorr[1] = plt.subplot2grid((1,3),(0,1),)
+        axNoiseCorr[2] = plt.subplot2grid((1,3),(0,2),)
+        
+        axNoiseCorr[0].plot(range(1,81), corrPCs_noiseq[:,range(0,7)]**2,)
+        axNoiseCorr[1].plot(range(1,81), corrPCs_noiseq[range(0,7),:].T**2,)
+        axNoiseCorr[2].plot(range(1,81),corrPCs_noiseq_R2sum_ax1,linewidth=2)
+        axNoiseCorr[2].plot(range(1,81),corrPCs_noiseq_R2sum_ax0,linewidth=1.5)
+        axNoiseCorr[2].plot(range(1,81),maxCorr_noiseq**2,linewidth=1)
+        axNoiseCorr[0].set_ylabel("R$^2$")
+        axNoiseCorr[0].set_xlabel("PC rank SNR$_{400}$")
+        axNoiseCorr[1].set_ylabel("R$^2$")
+        axNoiseCorr[1].set_xlabel("PC rank SNR$_\infty$")
+        axNoiseCorr[2].set_ylabel("Total R$^2$")
+        axNoiseCorr[2].set_xlabel("PC rank")
+        axNoiseCorr[0].legend(range(1,7))
+        axNoiseCorr[1].legend(range(1,7))
+        axNoiseCorr[2].legend(("Total R$^2$(SNR$_{400}$) per SNR$_\infty$PC","Total R$^2$(SNR$_\infty$) per SNR$_{400}$PC","Optimum match to SNR$_\infty$"))
+        
+        axNoiseCorr[0].annotate(
+            "a)",
+            xy=(0.25,0.9),
+            xytext=(0.135,0.86),
+            xycoords="figure fraction",
+            fontsize=pcaMC.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axNoiseCorr[1].annotate(
+            "b)",
+            xy=(0.25,0.9),
+            xytext=(0.41,0.86),
+            xycoords="figure fraction",
+            fontsize=pcaMC.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        axNoiseCorr[2].annotate(
+            "c)",
+            xy=(0.25,0.9),
+            xytext=(0.68,0.86),
+            xycoords="figure fraction",
+            fontsize=pcaMC.fig_Text_Size,
+            horizontalalignment="center",
+        )
+        image_name = "PC correlations noisy vs noiseless "
+        full_path = os.path.join(images_folder, pcaMC.fig_Project +
+                                image_name + pcaMC.fig_Format)
+        plt.savefig(full_path, 
+                         dpi=pcaMC.fig_Resolution)
+            
+        plt.close()
+
 ### ***   END  Scree Plot   ***
 
 ### ******      END CLASS      ******
