@@ -286,8 +286,8 @@ class graphicalPCA:
                          dpi=pcaMC.fig_Resolution)
         plt.close()
 
-        plt.plot(pcaMC.spectral_loading[0,:])
-        plt.plot(pcaMC.spectral_loading[18,:])
+        plt.plot(pcaMC.spectral_loading[0,:], linewidth=2.5)
+        plt.plot(pcaMC.spectral_loading[18,:], linewidth=0.75)
         plt.plot(pcaMC.spectral_loading[0,:]-pcaMC.spectral_loading[18,:])
         plt.ylabel("Weighting")
         plt.xlabel("Raman Shift /cm$^{-1}$")

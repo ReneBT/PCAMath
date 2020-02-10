@@ -718,7 +718,6 @@ class nipals:
             xycoords="axes fraction",
             fontsize=self.fig_Text_Size*1.5,
             horizontalalignment="center",
-            fontname="Cambria Math",
         )
         axDSLT[v_Ord[2]].annotate(
             sub_Fig[v_Ix[2]] + s_Str,
