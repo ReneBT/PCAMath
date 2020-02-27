@@ -189,9 +189,9 @@ class graphicalPCA:
         plt.ylabel("$Log_{10}$ of the Mean Absolute Difference")
         plt.xlabel("PC Rank")
         plt.gca().legend(["Tol = 0.1","Tol=10$^{-12}$"])
-        image_name = " Local NIPALS minus SKLearn SVD vs Rank."
+        image_name = " Local NIPALS minus SKLearn SVD vs Rank"
         full_path = os.path.join(images_folder, pcaMC.fig_Project +
-                                image_name + pcaMC.fig_Format)
+                                image_name + '.'+ pcaMC.fig_Format)
         plt.savefig(full_path, 
                          dpi=pcaMC.fig_Resolution)
         plt.close()
@@ -293,7 +293,7 @@ class graphicalPCA:
         plt.xlabel("Raman Shift /cm$^{-1}$")
         image_name = " Difference between PC1 and 19"
         full_path = os.path.join(images_folder, pcaMC.fig_Project +
-                                image_name + pcaMC.fig_Format)
+                                image_name + '.' + pcaMC.fig_Format)
         plt.savefig(full_path, 
                          dpi=pcaMC.fig_Resolution)
         plt.close()
@@ -510,7 +510,7 @@ class graphicalPCA:
         axScree[0,0].plot(range(1,11), 0.25*pca_noise.Eigenvalue[:10]**0.5, "--",color=[0.75, 0.75, 0.75])
         axScree[0,0].set_ylabel("Eigenvalue")
         axScree[0,0].set_xlabel("PC rank")
-        axScree[0,0].legend(("$SNR_\infty$","$SNR_{400}$","$SNR_{100}$","$SNR_{25}","Noise"))
+        axScree[0,0].legend(("$SNR_\infty$","$SNR_{400}$","$SNR_{100}$","$SNR_{25}$","Noise"))
         axScree[0,0].annotate(
             "a)",
             xy=(0.12,0.9),
@@ -549,7 +549,7 @@ class graphicalPCA:
         axScree[0,2].annotate(
             "c)",
             xy=(0.25,0.9),
-            xytext=(0.67,0.86),
+            xytext=(0.675,0.86),
             xycoords="figure fraction",
             fontsize=pcaMC.fig_Text_Size,
             horizontalalignment="center",
@@ -584,10 +584,11 @@ class graphicalPCA:
         reps_4_noise_recon = pcaMC.reduced_Rank_Reconstruction( reps_4_noise , 10 )
         
         axScree[1,3].plot(reps_4_noise)
-        axScree[1,3].plot(reps_4_noise_recon-np.mean(reps_4_noise[:]))
-        axScree[1,3].plot((reps_4_noise_recon.T-data[:,23]).T-2.5*np.mean(reps_4_noise[:]))
-        axScree[1,3].plot(10*(reps_4_noise_recon.T-data[:,23]).T-4.5*np.mean(reps_4_noise[:]))
-        axScree[1,3].plot((reps_4_noise.T-data[:,23]).T-1.5*np.mean(reps_4_noise[:]))
+        offset = np.mean(reps_4_noise[:])
+        axScree[1,3].plot(reps_4_noise_recon-offset)
+        axScree[1,3].plot((reps_4_noise.T-data[:,23]).T-1.5*offset)
+        axScree[1,3].plot((reps_4_noise_recon.T-data[:,23]).T-2.5*offset)
+        axScree[1,3].plot(10*(reps_4_noise_recon.T-data[:,23]).T-4.5*offset)
         axScree[1,3].set_ylabel("Intensity")
         axScree[1,3].set_yticklabels([])
         axScree[1,3].set_xticklabels([])
@@ -599,15 +600,26 @@ class graphicalPCA:
             fontsize=pcaMC.fig_Text_Size,
             horizontalalignment="center",
         )
+        subsubStr = ["i", "ii", "iii", "iv","v"]
+        ypos = [0.24, 0.22, 0.2, 0.18, 0.14]
+        for subsub in np.arange(5):
+            axScree[1,3].annotate(
+                subsubStr[subsub]+")",
+                xy=(0.25,0.9),
+                xytext=(0.54,ypos[subsub]),
+                xycoords="figure fraction",
+                fontsize=pcaMC.fig_Text_Size,
+                horizontalalignment="center",
+            )
         image_name = " Comparing PCAs for different levels of noise"
         full_path = os.path.join(images_folder, pcaMC.fig_Project +
-                                image_name + pcaMC.fig_Format)
+                                image_name + '.' + pcaMC.fig_Format)
         plt.savefig(full_path, 
                          dpi=pcaMC.fig_Resolution)
             
         plt.close()
     
-        figNoiseCorr, axNoiseCorr = plt.subplots(1, 3, figsize=[6,10])
+        figNoiseCorr, axNoiseCorr = plt.subplots(1, 3, figsize=pcaMC.fig_Size)
         axNoiseCorr[0] = plt.subplot2grid((1,3),(0,0),)
         axNoiseCorr[1] = plt.subplot2grid((1,3),(0,1),)
         axNoiseCorr[2] = plt.subplot2grid((1,3),(0,2),)
@@ -625,7 +637,7 @@ class graphicalPCA:
         axNoiseCorr[2].set_xlabel("PC rank")
         axNoiseCorr[0].legend(range(1,7))
         axNoiseCorr[1].legend(range(1,7))
-        axNoiseCorr[2].legend(("Total R$^2$(SNR$_{400}$) per SNR$_\infty$PC","Total R$^2$(SNR$_\infty$) per SNR$_{400}$PC","Optimum match to SNR$_\infty$"))
+        axNoiseCorr[2].legend(("Total R$^2_{400}$) per SNR$_\infty$PC","Total R$^2_\infty$) per SNR$_{400}$PC","Match SNR$_\infty$"))
         
         axNoiseCorr[0].annotate(
             "a)",
@@ -651,9 +663,9 @@ class graphicalPCA:
             fontsize=pcaMC.fig_Text_Size,
             horizontalalignment="center",
         )
-        image_name = "PC correlations noisy vs noiseless "
+        image_name = " PC correlations noisy vs noiseless "
         full_path = os.path.join(images_folder, pcaMC.fig_Project +
-                                image_name + pcaMC.fig_Format)
+                                image_name + '.' + pcaMC.fig_Format)
         plt.savefig(full_path, 
                          dpi=pcaMC.fig_Resolution)
             

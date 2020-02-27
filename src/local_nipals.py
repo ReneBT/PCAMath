@@ -37,7 +37,7 @@ class nipals:
         # maximum_number_PCs    is max_i, desired maximum number of PCs
         # maximum_iterations_PCs   is max_j, maximum iterations on each PC
         # iteration_tolerance    is tol, acceptable tolerance for difference between j and j-1 estimates of the PCs
-        # preproc is defining preprocessing steps desired prior to PCA. Current options are
+        # preproc is defining preprocessing stpng desired prior to PCA. Current options are
         #                     mean centering ('MC')
         #                     median centering ('MdnC')
         #                     scaling to unit variance ('UV')
@@ -109,7 +109,7 @@ class nipals:
         self.Eigenvalue = np.copy(self.optSF)
         
         self.fig_Size = [8,5]
-        self.fig_Resolution = 300
+        self.fig_Resolution = 800
         self.fig_Format = 'png'
         self.fig_k = range( 0 , self.N_Obs , np.ceil(self.N_Obs/10).astype(int) )
         self.fig_i = range( 0 , np.min((self.N_PC , 5 ) ) )
@@ -727,7 +727,7 @@ class nipals:
             xycoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
-            fontname="Cambria Math",
+            
         )
         axDSLT[v_Ord[3]].annotate(
             r"$\cdot$",
@@ -736,7 +736,7 @@ class nipals:
             textcoords="axes fraction",
             fontsize=self.fig_Text_Size*3,
             horizontalalignment="center",
-            fontname="Cambria Math",
+            
         )
 #        axD2Dw[0, 1].annotate(
 #            "$\widehat{\Sigma(R_{i=0}^2)}$",
@@ -754,7 +754,7 @@ class nipals:
             textcoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
-            fontname="Cambria Math",
+            
         )
         axDSLT[v_Ord[0]].annotate(
             matrix_Dims[v_Ix[0]],
@@ -764,7 +764,7 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
             va="center",
-            fontname="Cambria Math",
+            
         )        
         axDSLT[v_Ord[2]].annotate(
             matrix_Dims[v_Ix[2]],
@@ -783,7 +783,7 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
             va="center",
-            fontname="Cambria Math",
+            
         )
         if arrangement == "DSLT": #only put dimensions on the main plot
             axDSLT[v_Ord[0]].annotate(
@@ -796,7 +796,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[0]].annotate(
                 "$o=n$",
@@ -806,7 +806,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[0]].annotate(
                 "$v=1$",
@@ -819,7 +819,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[0]].annotate(
                 "$v=p$",
@@ -830,7 +830,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[2]].annotate(
                 "$o=1$",
@@ -842,7 +842,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[2]].annotate(
                 "$o=n$",
@@ -852,7 +852,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[2]].annotate(
                 "$i=1$",
@@ -865,7 +865,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[2]].annotate(
                 "$i=d$",
@@ -876,7 +876,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
-                fontname="Cambria Math",
+                
             )
             
             axDSLT[v_Ord[4]].annotate(
@@ -889,7 +889,7 @@ class nipals:
                             connectionstyle="arc3",lw=1),
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[4]].annotate(
                 "$i=d$",
@@ -899,7 +899,7 @@ class nipals:
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[4]].annotate(
                 "$v=1$",
@@ -912,7 +912,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="center",
                 va="center",
-                fontname="Cambria Math",
+                
             )
             axDSLT[v_Ord[4]].annotate(
                 "$v=p$",
@@ -923,7 +923,7 @@ class nipals:
                 fontsize=self.fig_Text_Size,
                 horizontalalignment="left",
                 va="center",
-                fontname="Cambria Math",
+                
             )
         
         if not self.fig_Show_Values: 
@@ -964,7 +964,7 @@ class nipals:
         axsldi[2] = plt.subplot2grid((1, 20), (0, 9), colspan=8)
         axsldi[3] = plt.subplot2grid((1, 20), (0, 17), colspan=1)
         axsldi[4] = plt.subplot2grid((1, 20), (0, 18), colspan=2)
-    
+        
         iSamMin = np.argmin(self.component_weight[:, component_array_index])
         iSamMax = np.argmax(self.component_weight[:, component_array_index])
         iSamZer = np.argmin(
@@ -1029,7 +1029,7 @@ class nipals:
             np.tile(-offsetProd,(2,1)),
             "-.g",
         )
-    
+        
         PCilims = np.tile(
             np.array(
                 [
@@ -1077,6 +1077,51 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
+        #connection arrows showing 
+        xpos = np.round(0.5*self.N_Vars).astype('int')
+        ypos = np.mean( [ self.spectral_loading[component_array_index, xpos] + offset * 1.25,
+                         self.data[xpos, iSamMax] / sf_iSam + offset / 4])
+        axsldi[0].annotate(
+            r"$\times$",
+            xy=(self.pixel_axis[xpos], 0.5),
+            xytext=(self.pixel_axis[xpos], ypos),
+            xycoords="data",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            color = (0.7, 0.7, 0.7)
+        )
+        for xpos in (np.arange(0.05,1,0.1)*self.N_Vars).astype('int'):
+            ypos0 = self.spectral_loading[component_array_index, xpos] + offset * 1.25
+            ypos1 = self.data[xpos, iSamMax] / sf_iSam + offset / 4
+            axsldi[0].annotate(
+                "",
+                xy=(self.pixel_axis[xpos], ypos1),
+                xytext=(self.pixel_axis[xpos], ypos0),
+                xycoords="data",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color = (0.7, 0.7, 0.7)),
+            )
+        
+        axsldi[0].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
+        
+        axsldi[0].annotate(
+            "",
+            xy=(1, 0.5),
+            xytext=(0, 0.5),
+            xycoords="axes fraction",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+        )
         axsldi[1].annotate(
             "",
             xy=(1, 0.5),
@@ -1103,6 +1148,38 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
+        ypos = np.max(self.spectral_loading[component_array_index, :] * self.data[:, iSamMax] + offsetProd)*0.9
+        axsldi[2].annotate(
+            "",
+            xy=(self.pixel_axis[-1], ypos),
+            xytext=(self.pixel_axis[0], ypos),
+            xycoords="data",
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color = (0.7, 0.7, 0.7)),
+        )
+        axsldi[2].annotate(
+            "+",
+            xy=(self.pixel_axis[0], ypos*1.1),
+            xytext=(self.pixel_axis[np.round((self.N_Vars/2)).astype('int')], ypos*1.1),
+            xycoords="data",
+            fontsize=self.fig_Text_Size,
+            horizontalalignment="center",
+            color = (0.7, 0.7, 0.7)
+        )
+        
+        for xpos in (np.arange(0.05,1,0.1)*self.N_Vars).astype('int'):
+            ypos0 = self.spectral_loading[component_array_index, xpos] + offset * 1.25
+            ypos1 = self.data[xpos, iSamMax] / sf_iSam + offset / 4
+            axsldi[0].annotate(
+                "",
+                xy=(self.pixel_axis[xpos], ypos1),
+                xytext=(self.pixel_axis[xpos], ypos0),
+                xycoords="data",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="center",
+                arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color = (0.7, 0.7, 0.7)),
+            )
+        
+        
         axsldi[3].annotate(
             "$\Sigma _{v=1}^{v=m}$",
             xy=(0, 0.5),
@@ -1154,17 +1231,18 @@ class nipals:
             fontsize=self.fig_Text_Size,
             horizontalalignment="left",
         )
-     
+        
         if not self.fig_Show_Values: 
             for iax in range(len(axsldi)):
                 axsldi[iax].axis("off")
-            
+        
         if self.fig_Show_Labels:
             axsldi[0].set_ylabel(self.fig_Y_Label)
             axsldi[0].set_xlabel(self.fig_X_Label)
             axsldi[2].set_ylabel('PC Weighted ' + self.fig_Y_Label)
             axsldi[2].set_xlabel(self.fig_X_Label)
             axsldi[4].set_ylabel('Weights / Arbitrary')
+        
         figsldi.savefig(
                 str(images_folder) + "\\" +
                 self.fig_Project + 
