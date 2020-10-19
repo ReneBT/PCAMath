@@ -428,7 +428,7 @@ class graphicalPCA:
         axbiplots[0,1].set_ylabel('t[2]',labelpad=-2)
         axbiplots[0,2].set_xlabel('time (weeks)',labelpad=-2)
         axbiplots[0,2].set_ylabel('t[1]',labelpad=-2)
-        axbiplots[0,0].legend(['0mg G0','0mg G1','2mg','_','4mg','_','6mg'],
+        axbiplots[0,0].legend(['0mg G0','0mg G1','1mg','_','2mg','_','3mg'],
                               fontsize=pcaMC.fig_Text_Size*0.65,framealpha=0.5,
                               borderpad=0.2)
         axbiplots[1,0].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-2)
