@@ -946,8 +946,8 @@ class nipals:
                                 image_name + self.fig_Format)
         figDSLT.savefig(full_path, 
                          dpi=self.fig_Resolution)
-#        plt.show()
-#        plt.close()
+
+        plt.close()
         
 ### figure_sldi
     def figure_sldi(self, component_index):
@@ -1247,7 +1247,7 @@ class nipals:
                 self.fig_Format, 
                 dpi=self.fig_Resolution
                 )    
-#        plt.show()
+
         plt.close()
         
         figsldiRes, axsldiRes = plt.subplots(1, 3, figsize=self.fig_Size)
@@ -1400,7 +1400,7 @@ class nipals:
                                 image_name + self.fig_Format)
         figsldiRes.savefig(full_path, 
                          dpi=self.fig_Resolution)
-#        plt.show()
+
         plt.close()
         
 ### figure_lsdi
@@ -1568,7 +1568,7 @@ class nipals:
         figlsdi.savefig(full_path, 
                          dpi=self.fig_Resolution)
         plt.close()
-#        plt.show()
+
 
         
 ### figure_lpniCommonSignalScalingFactors
@@ -1703,7 +1703,7 @@ class nipals:
                                 image_name + self.fig_Format)
         plt.savefig(full_path, 
                          dpi=self.fig_Resolution)
-#        plt.show()
+
         plt.close()
 
         # copy scalingAdjustment.py into its own cell after running this main cell in Jupyter then you
@@ -2084,7 +2084,7 @@ class nipals:
         figDTD.savefig(full_path, 
                          dpi=self.fig_Resolution)
         
-#        plt.show()
+
         plt.close()
         ###################                  END DTDscoreEqn                  #######################
 ### figure_DTDw
@@ -2414,6 +2414,6 @@ class nipals:
                                 image_name + self.fig_Format)
         figD2Dw.savefig(full_path, 
                          dpi=self.fig_Resolution)
-#        plt.show()
+
         plt.close()
        ###################                  END D2DwscoreEqn                  #######################
