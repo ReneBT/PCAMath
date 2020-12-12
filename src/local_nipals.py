@@ -191,7 +191,7 @@ class nipals:
             self.fig_Size = [ 8 , 5 ]
 
         if res is not None:
-            if np.ndim(res) == 1 and np.shape(res)[0] == 1:
+            if np.ndim(res) == 0:
                 self.fig_Resolution = res
             else:
                 print('Resolution should be a scalar, reverting to default resolution of 800 dpi')

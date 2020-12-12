@@ -87,7 +87,129 @@ class graphicalPCA:
             min_spectral_values=min_data,
         )
         pcaMC.calc_PCA()
+        pcaMC.figure_Settings(res=800)
 
+        figData, axData = plt.subplots(1, 2, figsize=pcaMC.fig_Size)
+        axData[0] = plt.subplot2grid((1, 11), (0, 0), colspan=5)
+        axData[1] = plt.subplot2grid((1, 11), (0, 6), colspan=5)
+        axData[0].plot( wavelength_axis , 
+                    simplified_fatty_acid_spectra["simFA"][201:,[0,6,9,18,17]]
+                    +np.arange(5), LineWidth = 0.5)
+        axData[0].set_ylabel("Intensity / Counts")
+        axData[0].set_xlabel("Raman Shift cm$^{-1}$")
+        axData[0].annotate(
+            r'$\delta$ H-C=$_c$',
+            xy=(0.2, 0.04),
+            xytext=(1260, 12.75),
+            textcoords="data",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0.8, 0, 0],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )
+        axData[0].annotate(
+            r'$\delta$ C-H$_2$',
+            xy=(1305, 9),
+            xytext=(1305, 12.5),
+            textcoords="data",
+            xycoords="data",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0.8, 0.65, 0.3],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )
+        axData[0].annotate(
+            r'$\delta$C-H$_x$',
+            xy=(0.2, 0.04),
+            xytext=(1440, 8.5),
+            textcoords="data",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0.87, 0.72, 0.38],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )
+        axData[0].annotate(
+            r'$\nu$C=C$_c$',
+            xy=(0.2, 0.04),
+            xytext=(1640, 15),
+            textcoords="data",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0.8, 0, 0],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )        
+        axData[0].annotate(
+            r'$\nu$C=C$_t$',
+            xy=(0.2, 0.04),
+            xytext=(1675, 7),
+            textcoords="data",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0, 0.66, 0],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )        
+        axData[0].annotate(
+            r'$\nu$C=O',
+            xy=(0.2, 0.04),
+            xytext=(1745, 5.15),
+            textcoords="data",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size*0.75,
+            color=[0, 0, 1],
+            horizontalalignment="center",
+            rotation=90,
+            va="bottom",
+        )        
+        FAnms = ['4:0','14:1c','16:1t','conj18:2ct','18:3c']
+        for iN in range(len(FAnms)):
+            axData[0].annotate(
+                FAnms[iN],
+                xy=(0.2, 0.04),
+                xytext=(1565, 0.35+iN),
+                textcoords="data",
+                xycoords="axes fraction",
+                fontsize=pcaMC.fig_Text_Size*0.75,
+                color = axData[0].get_lines()[iN].get_color(),
+                horizontalalignment="center",
+                va="center",
+            )
+        for i in range(data.shape[1]):
+            axData[1].plot( wavelength_axis , data[:,i]  , linewidth = 0.5, color=str(((i/data.shape[1])*0.9)),alpha=0.5)
+        axData[1].set_ylabel("Intensity / Counts")
+        axData[1].set_xlabel("Raman Shift cm$^{-1}$")
+        axData[0].annotate(
+            "a)",
+            xy=(0.1, 0.95),
+            xytext=(0.03, 0.95),
+            textcoords="axes fraction",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        axData[1].annotate(
+            "b)",
+            xy=(0.1, 0.95),
+            xytext=(0.03, 0.95),
+            textcoords="axes fraction",
+            xycoords="axes fraction",
+            fontsize=pcaMC.fig_Text_Size,
+            horizontalalignment="left",
+        )
+        image_name = " Basis Spectra."
+        full_path = os.path.join(images_folder, pcaMC.fig_Project +
+                                image_name + pcaMC.fig_Format)
+        plt.savefig(full_path, 
+                         dpi=pcaMC.fig_Resolution)        # plt.show()
+        plt.close()
 ### ***   END  Data Calculations   ***
 
 
@@ -385,31 +507,31 @@ class graphicalPCA:
                                                            pcaMC.spectral_loading[0,:][None,:]),axis=0)/44+pcaMC.centring/7)
         axbiplots[1,2].legend(['+ve','-ve'],fontsize=pcaMC.fig_Text_Size*0.65)
         
-        cPC = -1
-        for iPC in range(2):
-            shd = 0.2*iPC+0.2
-            cPC = cPC+1 # allow plotting of PCs other than just 1 and 2
-            aoff = lOff*cPC
-            ix = np.where(pcaMC.spectral_loading[iPC,:]==np.min(pcaMC.spectral_loading[iPC,:]))
-            xyB = (pcaMC.component_weight[np.where(pcaMC.component_weight[:,iPC]==np.min(pcaMC.component_weight[:,iPC])),iPC][0][0],0)
-            xyA = ( pcaMC.pixel_axis[ix[0][0]] , pcaMC.spectral_loading[iPC,ix][0][0]+aoff)
-            con = ConnectionPatch( xyA = xyA,
-                 xyB = (xyB[cPC],xyB[(cPC-1)**2]),coordsA = 'data', coordsB='data', 
-                 axesA=axbiplots[1,0], axesB=axbiplots[0,0],arrowstyle='->',
-                 ls='dashed',color=[shd*0.5,shd,shd*2],lw=0.5)
-            axbiplots[1,0].add_artist(con)
-            axbiplots[1,0].plot(xyA[0],xyA[1],'.',color=[shd*0.5,shd,shd*2])
-            ix = np.where(pcaMC.spectral_loading[iPC,:]==np.max(pcaMC.spectral_loading[iPC,:]))
-            xyB = (pcaMC.component_weight[np.where(pcaMC.component_weight[:,iPC]==np.max(pcaMC.component_weight[:,iPC])),iPC][0][0],0)
-            xyA = ( pcaMC.pixel_axis[ix[0][0]] , pcaMC.spectral_loading[iPC,ix][0][0]+aoff)
-            con = ConnectionPatch(xyA=xyA,
-                 xyB = (xyB[cPC],xyB[(cPC-1)**2]),coordsA = 'data', coordsB='data', 
-                 axesA=axbiplots[1,0], axesB=axbiplots[0,0],arrowstyle='->',
-                 ls='dashed',color=[shd*2,shd,shd*0.5],lw=0.5)
-            axbiplots[1,0].add_artist(con)
-            axbiplots[1,0].plot(xyA[0],xyA[1],'.',color=[shd*2,shd,shd*0.5])
+#        cPC = -1
+#        for iPC in range(2):
+#            shd = 0.2*iPC+0.2
+#            cPC = cPC+1 # allow plotting of PCs other than just 1 and 2
+#            aoff = lOff*cPC
+#            ix = np.where(pcaMC.spectral_loading[iPC,:]==np.min(pcaMC.spectral_loading[iPC,:]))
+#            xyB = (pcaMC.component_weight[np.where(pcaMC.component_weight[:,iPC]==np.min(pcaMC.component_weight[:,iPC])),iPC][0][0],0)
+#            xyA = ( pcaMC.pixel_axis[ix[0][0]] , pcaMC.spectral_loading[iPC,ix][0][0]+aoff)
+#            con = ConnectionPatch( xyA = xyA,
+#                 xyB = (xyB[cPC],xyB[(cPC-1)**2]),coordsA = 'data', coordsB='data', 
+#                 axesA=axbiplots[1,0], axesB=axbiplots[0,0],arrowstyle='->',
+#                 ls='dashed',color=[shd*0.5,shd,shd*2],lw=0.5)
+#            axbiplots[1,0].add_artist(con)
+#            axbiplots[1,0].plot(xyA[0],xyA[1],'.',color=[shd*0.5,shd,shd*2])
+#            ix = np.where(pcaMC.spectral_loading[iPC,:]==np.max(pcaMC.spectral_loading[iPC,:]))
+#            xyB = (pcaMC.component_weight[np.where(pcaMC.component_weight[:,iPC]==np.max(pcaMC.component_weight[:,iPC])),iPC][0][0],0)
+#            xyA = ( pcaMC.pixel_axis[ix[0][0]] , pcaMC.spectral_loading[iPC,ix][0][0]+aoff)
+#            con = ConnectionPatch(xyA=xyA,
+#                 xyB = (xyB[cPC],xyB[(cPC-1)**2]),coordsA = 'data', coordsB='data', 
+#                 axesA=axbiplots[1,0], axesB=axbiplots[0,0],arrowstyle='->',
+#                 ls='dashed',color=[shd*2,shd,shd*0.5],lw=0.5)
+#            axbiplots[1,0].add_artist(con)
+#            axbiplots[1,0].plot(xyA[0],xyA[1],'.',color=[shd*2,shd,shd*0.5])
         
-        subLabels = ["a) Score-Score plot","b) Biplot", "c) Score Trend",
+        subLabels = ["a) Score plot","b) Biplot", "c) Score Trend",
                      "d) Loadings line plot","e) Outer Product", "f) PC1 Score weighted data"]
         for ax1 in range(2):
             for ax2 in range(3):
