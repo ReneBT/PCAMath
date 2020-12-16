@@ -34,7 +34,8 @@ class graphicalPCA:
 ### Read in data
 # simulated fatty acid spectra and associated experimental concentration data
         mpl.rcParams['lines.markersize'] = 3
-
+        mpl.rcParams['svg.fonttype'] = 'none'
+        
         GC_data = sio.loadmat(
             os.path.join(data_folder / "FA profile.mat"), struct_as_record=False
         )
@@ -87,7 +88,7 @@ class graphicalPCA:
             min_spectral_values=min_data,
         )
         pcaMC.calc_PCA()
-        pcaMC.figure_Settings(res=800)
+        pcaMC.figure_Settings(frmt='.svg')
 
         figData, axData = plt.subplots(1, 2, figsize=pcaMC.fig_Size)
         axData[0] = plt.subplot2grid((1, 11), (0, 0), colspan=5)
