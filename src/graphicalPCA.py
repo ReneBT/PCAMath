@@ -432,6 +432,28 @@ class graphicalPCA:
 
 ### ***   Start  Interpretation   ***
 
+### ***   START Positive Negative   ***
+# scaling factor calculated for subtracting the common signal from the positive
+# and negative constituents of a PC. Use non-mean centerd data for clarity
+        nPC = 4
+        pcaNonMC = npls.nipals(
+            X_data = data,
+            maximum_number_PCs = nPC,
+            maximum_iterations_PCs = 25,
+            iteration_tolerance = 0.000000000001,
+            preproc = "NA",
+            pixel_axis = wavelength_axis,
+            spectral_weights = molar_profile,
+            min_spectral_values = min_data,
+        )
+        pcaNonMC.figure_Settings(frmt='svg')
+# generate subtraction figures for positive vs negative score weighted sums.
+        pcaNonMC.calc_Constituents(nPC)
+        component_index = 2 #PC1 is not interesting for common signal (there is none, so have component_index>=2)
+        pcaNonMC.figure_lpniScoreEqn(component_index)
+        
+### ***   END  Positive Negative   ***
+
 ### Biplot
 
         figbiplots, axbiplots = plt.subplots(2, 3, figsize=[9,5.3])
@@ -465,7 +487,7 @@ class graphicalPCA:
         axbiplots[1,0].plot(wavelength_axis,pcaMC.spectral_loading[1,:] + lOff,color=[0.3,0.3,0.3])
         axbiplots[1,0].plot(wavelength_axis[[0,-1]],[lOff,lOff],'--',color=[0.6,0.6,0.6]) 
         
-        offset = 5 #spacing between line and annotation
+        offset = 7 #spacing between line and annotation
         for iV in range(len(selvars)):
             p1 = pcaMC.spectral_loading[0,selvars[iV]]*pcaMC.Eigenvalue[0]**0.5
             p2 = pcaMC.spectral_loading[1,selvars[iV]]*pcaMC.Eigenvalue[1]**0.5

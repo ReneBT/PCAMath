@@ -570,7 +570,7 @@ class nipals:
             #                   D           =           S           .           LT
             txt_Positions = [[0.66, 0.9],[0.43, 0.5],[0.47, 0.9],[0.55, 0.5],[0.17, 0.9]]
             matrix_Dims = [ r"$p\times m$" , "", r"$p\times n$" , "" , r"$n\times m$" ]
-            s_Str = ") $S^{-1}$" #overwrite S amtrix name to indicate pseudo-inverse
+            s_Str = ") $S^{+}$" #overwrite S matrix name to indicate pseudo-inverse
         else:
             print(str(arrangement)+" is not a valid option. Use DSLT, SDL or LTSiD") 
         #    return
@@ -580,27 +580,26 @@ class nipals:
         figDSLT, axDSLT = plt.subplots(1, 5,figsize=self.fig_Size)
         axDSLT[v_Ord[0]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[0]]), colspan=8, rowspan=6)
         axDSLT[v_Ord[1]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[1]]), colspan=1, rowspan=6)
-        axDSLT[v_Ord[2]] = plt.subplot2grid((6, 22), (1, columns_ordered[v_Ord[2]]), colspan=4, rowspan=4)
+        axDSLT[v_Ord[2]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[2]]), colspan=4, rowspan=6)
         axDSLT[v_Ord[3]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[3]]), colspan=1, rowspan=6)
         axDSLT[v_Ord[4]] = plt.subplot2grid((6, 22), (0, columns_ordered[v_Ord[4]]), colspan=8, rowspan=6)
         
         axDSLT[v_Ord[0]].plot(self.pixel_axis[[0,-1]], self.data0lines,  "-.", linewidth=0.5)
         axDSLT[v_Ord[0]].plot(self.pixel_axis, self.data4plot)
 
+        alphas = 0.75*(self.fig_i/np.max(self.fig_i))**0.5 #want biggest alpha to be slightly transparent
         if arrangement == "LTSiD":
             axDSLT[v_Ord[2]].plot(self.iScores4plot.T, ".",
                   transform=transforms.Affine2D().rotate_deg(270) + 
                   axDSLT[v_Ord[2]].transData, markersize=7)
-            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.iScore0lines, "-.",
+            axDSLT[v_Ord[2]].plot([-0.15,np.max(self.fig_i)+0.15],self.iScore0lines, "-.",
                   transform=transforms.Affine2D().rotate_deg(270) + 
                   axDSLT[v_Ord[2]].transData, linewidth=0.5)
             xlims = axDSLT[v_Ord[2]].get_xlim()
-            alphas = 0.5*(self.fig_i/np.max(self.fig_i)) #want biggest alpha to be slightly transparent
+            axDSLT[v_Ord[2]].set_xlim((xlims[0]*1.1,xlims[1]*1.1)) 
             for iP in self.fig_i:
-                axDSLT[v_Ord[2]].add_patch(patches.Rectangle((xlims[0],-iP-0.5) , xlims[1]-xlims[0], 1,
+                axDSLT[v_Ord[2]].add_patch(patches.Rectangle((xlims[0]*1.1,-iP-0.035) , (xlims[1]-xlims[0])*1.1, 0.07,
                                                    alpha = alphas[iP], color = 'w', edgecolor=None, zorder=10))
-            axDSLT[v_Ord[2]].add_patch(patches.Rectangle((xlims[0],-iP-1) , xlims[1]-xlims[0], 0.5,
-                                                   alpha = 1, color = 'w', edgecolor=None, zorder=10))
             axDSLT[v_Ord[4]].annotate(
                 'C=C$_c$',
                 xy=(0.2, 0.04),
@@ -616,7 +615,7 @@ class nipals:
             axDSLT[v_Ord[4]].annotate(
                 'C-H$_2$',
                 xy=(0.2, 0.04),
-                xytext=(0.13, 0.95),
+                xytext=(0.12, 0.97),
                 textcoords="axes fraction",
                 xycoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -639,7 +638,7 @@ class nipals:
             axDSLT[v_Ord[4]].annotate(
                 'C=C$_c$',
                 xy=(0.2, 0.04),
-                xytext=(0.67, 0.9),
+                xytext=(0.72, 0.9),
                 textcoords="axes fraction",
                 xycoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -651,7 +650,7 @@ class nipals:
             axDSLT[v_Ord[4]].annotate(
                 'C=C$_t$',
                 xy=(0.2, 0.04),
-                xytext=(0.76, 0.84),
+                xytext=(0.78, 0.8),
                 textcoords="axes fraction",
                 xycoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -663,7 +662,7 @@ class nipals:
             axDSLT[v_Ord[4]].annotate(
                 'C=O',
                 xy=(0.2, 0.04),
-                xytext=(0.85, 0.825),
+                xytext=(0.9, 0.78),
                 textcoords="axes fraction",
                 xycoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -673,8 +672,9 @@ class nipals:
                 va="center",
             )        
         else:
-            axDSLT[v_Ord[2]].plot([0,np.shape(self.fig_i)[0]],self.Score0lines, "-.", linewidth=0.5)
             axDSLT[v_Ord[2]].plot(self.Scores4plot.T, ".", markersize=7)
+            axDSLT[v_Ord[2]].plot([-0.15,np.max(self.fig_i)+0.15],self.Score0lines, "-.", linewidth=0.5)
+            axDSLT[v_Ord[2]].set_ylim(axDSLT[v_Ord[2]].get_ylim()[0]*1.1,axDSLT[v_Ord[2]].get_ylim()[1]*1.1)
 # currently have xcf files in GIMP that do the shading. 
 # To apply to an updated figure:
 # 1. paste in the new png generated by Python
@@ -683,8 +683,7 @@ class nipals:
 # 4. for inverse loadings (LTSiD) you need to select the scores area and paste 
 #    in a new layer the flip horizontally
 # 5. export as png to replace the python generated version
-            ylims = axDSLT[v_Ord[2]].get_ylim()
-            alphas = 0.5*(self.fig_i/np.max(self.fig_i)) #want biggest alpha to be slightly transparent
+            ylims = axDSLT[v_Ord[2]].get_ylim()*0.9
             for iP in range(1,np.shape(self.fig_i)[0]):
                 axDSLT[v_Ord[2]].add_patch(patches.Rectangle((iP-0.5,ylims[0]), 1 , ylims[1]-ylims[0],
                                                    alpha = alphas[iP], color = 'w', edgecolor=None, zorder=10))
@@ -709,7 +708,7 @@ class nipals:
         
 
         axDSLT[v_Ord[0]].annotate(
-            sub_Fig[v_Ix[0]]+") $D_{-\mu}$",
+            sub_Fig[v_Ix[0]]+") $D$",
             xy=(txt_Positions[0]),
             xytext=(txt_Positions[0]),
             textcoords="figure fraction",
@@ -758,7 +757,7 @@ class nipals:
         axDSLT[v_Ord[0]].annotate(
             matrix_Dims[v_Ix[0]],
             xy=(0.15, 0.12),
-            xytext=(0.5, 0.9),
+            xytext=(0.5, 1.02),
             xycoords="axes fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
@@ -768,20 +767,17 @@ class nipals:
         axDSLT[v_Ord[2]].annotate(
             matrix_Dims[v_Ix[2]],
             xy=(0.52, 0.12),
-            xytext=(0.5, 1),
+            xytext=(0.5, 1.02),
             xycoords="axes fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
             va="center",
         )
-        if arrangement == "SDL":
-            dimPos = (0.5,1)
-        else:
-            dimPos=(0.5, 0.92)                
+
         axDSLT[v_Ord[4]].annotate(
             matrix_Dims[v_Ix[4]],
             xy=(0.75, 0.12),
-            xytext=dimPos,
+            xytext=(0.5,1.02),
             xycoords="axes fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
@@ -814,7 +810,7 @@ class nipals:
             axDSLT[v_Ord[0]].annotate(
                 "$v=1$",
                 xy=(0.27, 0.12),
-                xytext=(0.17, 0.12),
+                xytext=(0.15, 0.12),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 arrowprops=dict(facecolor="black",arrowstyle="->",
@@ -860,7 +856,7 @@ class nipals:
             axDSLT[v_Ord[2]].annotate(
                 "$i=1$",
                 xy=(0.55, 0.12),
-                xytext=(0.5, 0.12),
+                xytext=(0.48, 0.12),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 arrowprops=dict(facecolor="black",arrowstyle="->",
@@ -884,8 +880,8 @@ class nipals:
             
             axDSLT[v_Ord[4]].annotate(
                 "$i=1$",
-                xy=(0.65, 0.15),
-                xytext=(0.65, 0.22),
+                xy=(0.62, 0.15),
+                xytext=(0.62, 0.22),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 arrowprops=dict(facecolor="black",arrowstyle="->",
@@ -896,8 +892,8 @@ class nipals:
             )
             axDSLT[v_Ord[4]].annotate(
                 "$i=p$",
-                xy=(0.65, 0.14),
-                xytext=(0.65, 0.14),
+                xy=(0.62, 0.14),
+                xytext=(0.62, 0.14),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 fontsize=self.fig_Text_Size,
@@ -907,7 +903,7 @@ class nipals:
             axDSLT[v_Ord[4]].annotate(
                 "$v=1$",
                 xy=(0.78, 0.12),
-                xytext=(0.68, 0.12),
+                xytext=(0.645, 0.12),
                 textcoords="figure fraction",
                 xycoords="figure fraction",
                 arrowprops=dict(facecolor="black",arrowstyle="->",
@@ -1316,7 +1312,7 @@ class nipals:
             - offset / 4,
             "k--", linewidth=1,
         )
-        axsldiRes[0].legend(("$d_{max}$", "$d_{zero}$", "$d_{min}$", r"$l_i\times d_{o}$"))
+        axsldiRes[0].legend(("$d_{max}$", "$d_{zero}$", "$d_{min}$", r"$s_o \times l_i$"))
 
         axsldiRes[2].plot(
             self.pixel_axis,
@@ -1341,7 +1337,7 @@ class nipals:
         axsldiRes[2].set_ylim(axsldiRes[0].get_ylim())
         
         axsldiRes[0].annotate(
-            "a) Data & PC"+str(component_index)+" loading weighted data",
+            "a) Data & PC"+str(component_index)+" score weighted loading",
             xy=(0.2, 0.95),
             xytext=(0.3, 0.95),
             textcoords="figure fraction",
@@ -1351,24 +1347,24 @@ class nipals:
         )
         axsldiRes[1].annotate(
             "",
-            xy=(0.54, 0.5),
-            xytext=(0.46, 0.5),
+            xy=(0.55, 0.5),
+            xytext=(0.47, 0.5),
             xycoords="figure fraction",
             arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
         )
         axsldiRes[1].annotate(
             r"$d_o-$",
             xy=(0.5, 0.5),
-            xytext=(0.5, 0.52),
+            xytext=(0.51, 0.52),
             xycoords="figure fraction",
             textcoords="figure fraction",
             fontsize=self.fig_Text_Size,
             horizontalalignment="center",
         )
         axsldiRes[1].annotate(
-            r"$(l_i \times d_o)$",
+            r"$(s_o \times l_i)$",
             xy=(0.5, 0.5),
-            xytext=(0.5, 0.46),
+            xytext=(0.51, 0.46),
             xycoords="figure fraction",
             textcoords="figure fraction",
             fontsize=self.fig_Text_Size,
@@ -1801,7 +1797,7 @@ class nipals:
             axlpni[1].annotate(
                 "$s_{o,i}^{-1} >0$",
                 xy=(0.37, 0.8),
-                xytext=(0.41, 0.87),
+                xytext=(0.4, 0.84),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -1811,7 +1807,7 @@ class nipals:
             axlpni[1].annotate(
                 "$s_{o,i}^{-1} <0$",
                 xy=(0.35, 0.78),
-                xytext=(0.41, 0.82),
+                xytext=(0.4, 0.8),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -1822,7 +1818,7 @@ class nipals:
             axlpni[3].annotate(
                 "$l_{i+}$",
                 xy=(0.37, 0.8),
-                xytext=(0.41, 0.87),
+                xytext=(0.4, 0.84),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -1832,7 +1828,7 @@ class nipals:
             axlpni[3].annotate(
                 "$l_{i-}$",
                 xy=(0.35, 0.78),
-                xytext=(0.41, 0.82),
+                xytext=(0.4, 0.8),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
@@ -1842,54 +1838,37 @@ class nipals:
 
 
 #            ylim = np.max(pnegative_sum)
-            axlpni[5].annotate(
-                "$l_i$",
-                xy=(0.1, 0.9),
-                xytext=(0, 0.92),
-                xycoords="axes fraction",
-                textcoords="axes fraction",
-                fontsize=self.fig_Text_Size*0.75,
-                horizontalalignment="left",
-                color="m",
-            )
-            axlpni[5].annotate(
-                "$l_{i+}-l_{i-}$",
-                xy=(0.1, 0.9),
-                xytext=(0, 0.87),
-                xycoords="axes fraction",
-                textcoords="axes fraction",
-                fontsize=self.fig_Text_Size*0.75,
-                horizontalalignment="left",
-                color="c",
-            )
-            axlpni[5].annotate(
-                "$l_i-(l_{i+}-l_{i-})$",
-                xy=(0.1, 0.9),
-                xytext=(0, 0.82),
-                xycoords="axes fraction",
-                textcoords="axes fraction",
-                fontsize=self.fig_Text_Size*0.75,
-                horizontalalignment="left",
-                color="k",
-            )
+            axlpni[5].legend(("$l_i$","$l_{i+}-l_{i-}$","$l_i-(l_{i+}-l_{i-})$"),
+                             loc=(0.22,0.78),
+                             fontsize=self.fig_Text_Size*0.75)
             totdiff = "{:.0f}".format(
                 np.log10(np.mean(np.abs(self.spectral_loading[component_array_index, :] - pnegative_sum)))
             )
             axlpni[5].annotate(
-                "$\Delta_{l_i,l_{i+}-l_{i-}}=10^{" + totdiff + "}$",
+                "$\Delta_{l_i,(l_{i+}-l_{i-})}$",
                 xy=(0.1, 0.9),
-                xytext=(0.5, 0),
+                xytext=(0.42, 0.54),
                 xycoords="axes fraction",
                 textcoords="axes fraction",
-                fontsize=self.fig_Text_Size*0.75,
-                horizontalalignment="center",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
+                color="k",
+            )
+            axlpni[5].annotate(
+                "$=10^{" + totdiff + "}$",
+                xy=(0.1, 0.9),
+                xytext=(0.46, 0.5),
+                xycoords="axes fraction",
+                textcoords="axes fraction",
+                fontsize=self.fig_Text_Size,
+                horizontalalignment="left",
                 color="k",
             )
 
             axlpni[2].annotate(
                 r"$\Sigma(s_{i+}^{-1} \times d_{i+})$",
                 xy=(0, 0.5),
-                xytext=(0.5, 0.55),
+                xytext=(0.5, 0.53),
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="center",
@@ -1897,7 +1876,7 @@ class nipals:
             axlpni[2].annotate(
                 r"$\Sigma(-s_{i-}^{-1} \times d_{i-})$",
                 xy=(0, 0.5),
-                xytext=(0.5, 0.42),
+                xytext=(0.5, 0.44),
                 textcoords="axes fraction",
                 fontsize=self.fig_Text_Size*0.75,
                 horizontalalignment="center",
