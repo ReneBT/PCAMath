@@ -474,9 +474,9 @@ class graphicalPCA:
                 cGrp = ~lac_Stage
                 fillS = 'none'
             ix = np.where(np.logical_and(feed==grps[0][iS] , cGrp))[0]
-            axbiplots[0,0].plot(pcaMC.component_weight[ix, 0],pcaMC.component_weight[ix, 1],grps[2][iS],fillstyle=fillS)
-            axbiplots[0,1].plot(pcaMC.component_weight[ix, 0],pcaMC.component_weight[ix, 1],grps[2][iS],fillstyle=fillS)
-            axbiplots[0,2].plot(week[ix],pcaMC.component_weight[ix, 0],grps[2][iS],fillstyle=fillS)
+            axbiplots[0,0].plot(pcaMC.component_weight[ix, 0],pcaMC.component_weight[ix, 1],grps[2][iS],fillstyle=fillS,ms=5)
+            axbiplots[0,1].plot(pcaMC.component_weight[ix, 0],pcaMC.component_weight[ix, 1],grps[2][iS],fillstyle=fillS,ms=5)
+            axbiplots[0,2].plot(week[ix],pcaMC.component_weight[ix, 0],grps[2][iS],fillstyle=fillS,ms=5)
         
         selvars = [90,95,104,108,232,241,451,472,538,549]#np.argsort(np.sum(np.abs(pcaMC.spectral_loading[:2,:]),0))[-20:]
         lOff = np.round(-(np.max(pcaMC.spectral_loading[1,:])-np.min(pcaMC.spectral_loading[0,:]))*12.5)/10 #offset by a simple number
@@ -517,11 +517,11 @@ class graphicalPCA:
         loadAutoCorrIm[:loadAutoCorr.shape[0],loDim:,1] = loadAutoCorrt + loadAutoCorrIm[:loadAutoCorr.shape[0],loDim:,1]
         loadAutoCorrIm[:loadAutoCorr.shape[0],loDim:,2] = loadAutoCorrt
         axrng = [pcaMC.pixel_axis[0]-(pcaMC.pixel_axis[1]-pcaMC.pixel_axis[0])*loDim,pcaMC.pixel_axis[-1]]
-        axbiplots[1,1].imshow(loadAutoCorrIm**0.5, extent=np.concatenate([axrng,axrng]))
+        axbiplots[1,1].imshow(1-(loadAutoCorrIm**0.5), extent=np.concatenate([axrng,axrng]))
         axrngL = [pcaMC.pixel_axis[0],pcaMC.pixel_axis[-1]]
-        axbiplots[1,1].plot(axrngL,axrngL,'--w',lw=0.5)
-        axbiplots[1,1].plot(wavelength_axis,pcaMC.spectral_loading[0,:]*loDim/(np.max(pcaMC.spectral_loading[0,:]))+axrng[0]+loDim/2 ,color=[0.65,0.75,1])
-        axbiplots[1,1].plot(pcaMC.spectral_loading[1,:]*loDim/(np.max(pcaMC.spectral_loading[1,:]))+axrng[0]+loDim/2 , wavelength_axis,color=[0.75,0.65,1])
+        axbiplots[1,1].plot(axrngL,axrngL,'--k',lw=0.5)
+        axbiplots[1,1].plot(wavelength_axis,pcaMC.spectral_loading[0,:]*loDim/(np.max(pcaMC.spectral_loading[0,:]))+axrng[0]+loDim/2 ,color=[0,0,0])
+        axbiplots[1,1].plot(pcaMC.spectral_loading[1,:]*loDim/(np.max(pcaMC.spectral_loading[1,:]))+axrng[0]+loDim/2 , wavelength_axis,color=[0.3,0.3,0.3])
         
         # now plot score weighted observations for positive and negative plus loading for PC1. Only partially add back the mean (1/7)
         axbiplots[1,2].plot(pcaMC.pixel_axis,np.sum(np.dot(pcaMC.component_weight[pcaMC.component_weight[:,0]>0,0][:,None],
@@ -567,21 +567,21 @@ class graphicalPCA:
                     horizontalalignment="left",
                 )
         
-        axbiplots[0,0].set_xlabel('t[1]',labelpad=-2)
-        axbiplots[0,0].set_ylabel('t[2]',labelpad=-2)
-        axbiplots[0,1].set_xlabel('t[1]',labelpad=-2)
-        axbiplots[0,1].set_ylabel('t[2]',labelpad=-2)
-        axbiplots[0,2].set_xlabel('time (weeks)',labelpad=-2)
-        axbiplots[0,2].set_ylabel('t[1]',labelpad=-2)
+        axbiplots[0,0].set_xlabel('t[1]',labelpad=-1)
+        axbiplots[0,0].set_ylabel('t[2]',labelpad=-1)
+        axbiplots[0,1].set_xlabel('t[1]',labelpad=-1)
+        axbiplots[0,1].set_ylabel('t[2]',labelpad=-1)
+        axbiplots[0,2].set_xlabel('time (weeks)',labelpad=-1)
+        axbiplots[0,2].set_ylabel('t[1]',labelpad=-1)
         axbiplots[0,0].legend(['0mg G0','0mg G1','1mg','_','2mg','_','3mg'],
                               fontsize=pcaMC.fig_Text_Size*0.65,framealpha=0.5,
                               borderpad=0.2)
-        axbiplots[1,0].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-2)
-        axbiplots[1,0].set_ylabel('Coefficient',labelpad=-2)
-        axbiplots[1,1].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-2)
-        axbiplots[1,1].set_ylabel('Raman Shift (cm$^{-1}$)',labelpad=-2)
-        axbiplots[1,2].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-2)
-        axbiplots[1,2].set_ylabel('Intensity (Counts)',labelpad=-2)
+        axbiplots[1,0].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-1)
+        axbiplots[1,0].set_ylabel('Coefficient',labelpad=-1)
+        axbiplots[1,1].set_xlabel('PC1 Raman Shift (cm$^{-1}$)',labelpad=-1)
+        axbiplots[1,1].set_ylabel('PC2 Raman Shift (cm$^{-1}$)',labelpad=-1)
+        axbiplots[1,2].set_xlabel('Raman Shift (cm$^{-1}$)',labelpad=-1)
+        axbiplots[1,2].set_ylabel('Intensity (Counts)',labelpad=-1)
             
         image_name = " Interpretation plots."
         full_path = os.path.join(images_folder, pcaMC.fig_Project +
